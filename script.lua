@@ -72,7 +72,7 @@ local FONT_TITLE = Enum.Font.GothamBlack
 local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local WIN_W, WIN_H = 440, 350
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.5 Elite Beta Fix</font>'
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.6 Beta Fix</font>'
 
 local State = {
 Features = { Apply = false, Aimbot = false, ESP = false, Bypass = false, TeamCheck = false, WallCheck = false },
@@ -180,7 +180,7 @@ BackgroundTransparency = 0.04, BorderSizePixel = 0, Position = UDim2.new(0, 24, 
 }, HS.NotifyContainer)
 Create("UICorner", { CornerRadius = UDim.new(0, 11) }, frame)
 Create("UIStroke", { Color = C.Accent, Thickness = 1.35, Transparency = 0.12 }, frame)
-Create("UIGradient", { Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(33, 28, 62)), ColorSequenceKeypoint.new(1, C.Panel)}), Rotation = 15 }, frame)
+Create("UIGradient", { Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(55, 8, 16)), ColorSequenceKeypoint.new(1, C.Panel)}), Rotation = 15 }, frame)
 TweenService:Create(frame, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
 Create("TextLabel", {
 BackgroundTransparency = 1, Size = UDim2.new(1, -18, 0, 21), Position = UDim2.new(0, 12, 0, 5),
@@ -335,13 +335,13 @@ end
 task.spawn(function()
 task.wait(4)
 if Unloaded then return end
-Notify("HyperSun loaded", "Hyper Sun 2.5 Elite Beta Fix", 5)
+Notify("HyperSun loaded", "Hyper Sun 2.6 Beta Fix", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("Lib loading", "Hyper Sun 2.5 Elite Beta Fix", 5)
+Notify("Lib loading", "Hyper Sun 2.6 Beta Fix", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("64bit", "Hyper Sun 2.5 Elite Beta Fix", 5)
+Notify("64bit", "Hyper Sun 2.6 Beta Fix", 5)
 if not HasDrawing then
 task.wait(5)
 Notify("Cảnh báo", "Executor không có Drawing: ESP/FOV tắt", 5)
@@ -797,7 +797,7 @@ end)
 CreateToggle(HS.TabFunc, "Patched AntiBan (UI only)", false, function(s)
 State.Features.AntiBanUI = s
 if s then
-Notify("Patched AntiBan 2.5 Elite Beta Fix", "Trạng thái giao diện; không bảo đảm chống ban", 5)
+Notify("Patched AntiBan 2.6 Beta Fix", "Trạng thái giao diện; không bảo đảm chống ban", 5)
 else
 Notify("AntiBan UI đã tắt", "Không có bảo vệ chống ban thực sự", 4)
 end
@@ -812,7 +812,7 @@ CreateLabel(HS.TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
 CreateLabel(HS.TabFunc, "Anti Kick: N/A", C.Sub)
 CreateLabel(HS.TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
 CreateLabel(HS.TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
-CreateLabel(HS.TabFunc, "By: Hyper Sun 2.5 Elite Beta Fix", C.Text)
+CreateLabel(HS.TabFunc, "By: Hyper Sun 2.6 Beta Fix", C.Text)
 
 CreateHeader(HS.TabFunc, "BỘ LỌC MỤC TIÊU")
 CreateToggle(HS.TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
@@ -1525,16 +1525,16 @@ function HS.SetFreezeMarker(on)
                 HS.ClearFreezeMarker()
             end
         end)
-        Notify("Hyper Sun 2.5 Elite Beta Fix · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
+        Notify("Hyper Sun 2.6 Beta Fix · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
     else
-        Notify("Hyper Sun 2.5 Elite Beta Fix · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
+        Notify("Hyper Sun 2.6 Beta Fix · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
     end
 end
 HS.FreezeFloat.OnTap(function() HS.SetFreezeMarker(not HS.FreezeEnabled) end)
 CreateToggle(HS.TabMem, "Hiện nút nổi Freeze", false, function(on) HS.FreezeFloat.Show(on) end)
 CreateLabel(HS.TabMem, "Freeze chỉ đánh dấu mục tiêu cục bộ. Đóng băng người chơi khác cần quyền xử lý phía máy chủ của game.", C.Sub)
 
--- Tele Backpack / Tele X3: local cosmetic glider and raised-arm pose.
+-- Tele Backpack / Tele X3: locally rendered Free-Fire-inspired glider.
 HS.TeleX3Enabled = false
 HS.TeleX3Objects = {}
 HS.TeleX3SavedMotors = {}
@@ -1552,7 +1552,7 @@ function HS.SetTeleX3(on)
     HS.TeleX3Float.SetOn(HS.TeleX3Enabled)
     HS.ClearTeleX3()
     if not HS.TeleX3Enabled then
-        Notify("Hyper Sun 2.5 Elite Beta Fix · Tele X3", "Đã tắt và khôi phục tư thế", 3)
+        Notify("HyperSun 2.6 Beta Fix · Tele X3", "Đã tắt dù lượn và khôi phục tư thế", 3)
         return
     end
     local char = LocalPlayer.Character
@@ -1561,56 +1561,178 @@ function HS.SetTeleX3(on)
     if not char or not hum or not root then
         HS.TeleX3Enabled = false
         HS.TeleX3Float.SetOn(false)
-        Notify("Hyper Sun 2.5 Elite Beta Fix · Tele X3", "Nhân vật chưa sẵn sàng", 4)
+        Notify("HyperSun 2.6 Beta Fix · Tele X3", "Nhân vật chưa sẵn sàng", 4)
         return
     end
-    -- Locally raise R6/R15 arms where Motor6D joints are available.
     for _, motor in ipairs(char:GetDescendants()) do
         if motor:IsA("Motor6D") and (motor.Name == "RightShoulder" or motor.Name == "LeftShoulder" or motor.Name == "Right Shoulder" or motor.Name == "Left Shoulder") then
             HS.TeleX3SavedMotors[motor] = motor.Transform
-            pcall(function() motor.Transform = CFrame.Angles(0, 0, motor.Name:find("Left") and -math.rad(155) or math.rad(155)) end)
+            pcall(function() motor.Transform = CFrame.Angles(0, 0, motor.Name:find("Left") and -math.rad(145) or math.rad(145)) end)
         end
     end
-    -- Simple red-black decorative glider canopy attached locally above the avatar.
     local model = Instance.new("Model")
     model.Name = "HyperSun_TeleX3_Glider"
-    local function part(name, size, cf, color, material)
+    model.Parent = char
+    local function part(name, size, cf, color, material, shape)
         local obj = Instance.new("Part")
         obj.Name = name
         obj.Size = size
         obj.CFrame = cf
         obj.Color = color
         obj.Material = material or Enum.Material.SmoothPlastic
+        obj.Shape = shape or Enum.PartType.Block
         obj.Anchored = false
         obj.CanCollide = false
         obj.CanTouch = false
         obj.CanQuery = false
         obj.Massless = true
+        obj.CastShadow = false
         obj.Parent = model
         table.insert(HS.TeleX3Objects, obj)
         return obj
     end
-    local base = root.Position + Vector3.new(0, 5.5, 0)
-    local canopy = part("RedCanopy", Vector3.new(5.2, 0.22, 2.1), CFrame.new(base), Color3.fromRGB(210, 18, 38), Enum.Material.Neon)
-    local stripe = part("BlackStripe", Vector3.new(5.3, 0.24, 0.28), CFrame.new(base + Vector3.new(0, 0.14, 0)), Color3.fromRGB(12, 12, 15), Enum.Material.SmoothPlastic)
-    local leftRope = part("LeftRope", Vector3.new(0.06, 2.4, 0.06), CFrame.new(root.Position + Vector3.new(-1.4, 3.8, 0)), Color3.fromRGB(245, 245, 245))
-    local rightRope = part("RightRope", Vector3.new(0.06, 2.4, 0.06), CFrame.new(root.Position + Vector3.new(1.4, 3.8, 0)), Color3.fromRGB(245, 245, 245))
-    model.Parent = char
+    local origin = root.CFrame
+    local function at(x, y, z, rx, ry, rz)
+        return origin * CFrame.new(x, y, z) * CFrame.Angles(rx or 0, ry or 0, rz or 0)
+    end
     local function weldToRoot(obj)
         local weld = Instance.new("WeldConstraint")
         weld.Part0 = root
         weld.Part1 = obj
         weld.Parent = obj
-        obj.CFrame = root.CFrame * CFrame.new(obj.Position - root.Position)
     end
+    -- Curved-looking canopy assembled from overlapping colored fabric panels.
+    local panels = {
+        {-2.65, 0.05, 0.00, Color3.fromRGB(210, 20, 35), -12},
+        {-1.62, 0.28, 0.00, Color3.fromRGB(245, 245, 245), -7},
+        {-0.56, 0.43, 0.00, Color3.fromRGB(18, 18, 22), -3},
+        { 0.56, 0.43, 0.00, Color3.fromRGB(235, 28, 45), 3},
+        { 1.62, 0.28, 0.00, Color3.fromRGB(245, 245, 245), 7},
+        { 2.65, 0.05, 0.00, Color3.fromRGB(210, 20, 35), 12}
+    }
+    for i, panel in ipairs(panels) do
+        part("CanopyPanel_" .. i, Vector3.new(1.18, 0.16, 1.75), at(panel[1], 5.65 + panel[2], panel[3], 0, 0, math.rad(panel[5])), panel[4], Enum.Material.SmoothPlastic)
+    end
+    part("CanopyFrontRim", Vector3.new(5.65, 0.12, 0.12), at(0, 5.58, -0.82), Color3.fromRGB(245, 35, 48), Enum.Material.SmoothPlastic)
+    part("CanopyRearRim", Vector3.new(5.4, 0.1, 0.1), at(0, 5.7, 0.82), Color3.fromRGB(12, 12, 15), Enum.Material.SmoothPlastic)
+    part("CenterBadge", Vector3.new(0.5, 0.08, 0.35), at(0, 6.0, 0), Color3.fromRGB(255, 255, 255), Enum.Material.Neon)
+    -- Suspension lines from canopy to the player's hand area.
+    for i = -2, 2 do
+        local x = i * 0.85
+        local line = part("SuspensionLine_" .. tostring(i), Vector3.new(0.035, 2.65, 0.035), at(x * 0.78, 3.95, 0, 0, 0, math.rad(i * 7)), Color3.fromRGB(225, 225, 225), Enum.Material.SmoothPlastic)
+    end
+    part("HarnessBack", Vector3.new(1.0, 1.25, 0.22), at(0, 1.25, 0.45), Color3.fromRGB(22, 22, 26), Enum.Material.SmoothPlastic)
+    part("HarnessRedStripe", Vector3.new(0.12, 1.0, 0.06), at(0, 1.25, 0.31), Color3.fromRGB(240, 28, 45), Enum.Material.Neon)
     for _, obj in ipairs(HS.TeleX3Objects) do weldToRoot(obj) end
-    Notify("Hyper Sun 2.5 Elite Beta Fix · Tele X3", "Đã bật dù lượn trang trí cục bộ", 4)
+    Notify("HyperSun 2.6 Beta Fix · Tele X3", "Đã bật dù lượn phong cách battle-royale (hiển thị cục bộ)", 4)
 end
 HS.TeleX3Float.OnTap(function() HS.SetTeleX3(not HS.TeleX3Enabled) end)
 CreateHeader(HS.TabFly, "TELE BACKPACK")
 CreateButton(HS.TabFly, "Tele X3 · Bật / Tắt dù lượn", function() HS.SetTeleX3(not HS.TeleX3Enabled) end)
 CreateToggle(HS.TabFly, "Hiện nút nổi Tele X3", false, function(on) HS.TeleX3Float.Show(on) end)
 CreateLabel(HS.TabFly, "Dù lượn và tư thế tay chỉ hiển thị cục bộ trên thiết bị của bạn.", C.Sub)
+
+-- Tele Board: rainbow skateboard, rendered locally on this client.
+HS.TeleBoardEnabled = false
+HS.TeleBoardAll = false
+HS.TeleBoardModels = {}
+HS.TeleBoardConnection = nil
+function HS.ClearTeleBoards()
+    if HS.TeleBoardConnection then pcall(function() HS.TeleBoardConnection:Disconnect() end); HS.TeleBoardConnection = nil end
+    for _, model in pairs(HS.TeleBoardModels) do pcall(function() model:Destroy() end) end
+    HS.TeleBoardModels = {}
+end
+function HS.MakeTeleBoard(plr)
+    if not plr or not plr.Character or HS.TeleBoardModels[plr] then return end
+    local root = plr.Character:FindFirstChild("HumanoidRootPart")
+    local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+    if not root or not hum or hum.Health <= 0 then return end
+    local model = Instance.new("Model")
+    model.Name = "HyperSun_RainbowBoard"
+    model.Parent = ScreenGui
+    local colors = {
+        Color3.fromRGB(255, 35, 55), Color3.fromRGB(255, 130, 25),
+        Color3.fromRGB(255, 225, 35), Color3.fromRGB(40, 220, 100),
+        Color3.fromRGB(30, 180, 255), Color3.fromRGB(90, 80, 255),
+        Color3.fromRGB(205, 55, 255)
+    }
+    local boardParts = {}
+    for i, color in ipairs(colors) do
+        local seg = Instance.new("Part")
+        seg.Name = "RainbowDeck_" .. i
+        seg.Size = Vector3.new(0.34, 0.12, 1.65)
+        seg.Color = color
+        seg.Material = Enum.Material.Neon
+        seg.Anchored = false
+        seg.CanCollide = false
+        seg.CanTouch = false
+        seg.CanQuery = false
+        seg.Massless = true
+        seg.CastShadow = false
+        seg.CFrame = root.CFrame * CFrame.new((i - 4) * 0.34, -3.0, 0)
+        seg.Parent = model
+        table.insert(boardParts, seg)
+    end
+    for _, x in ipairs({-0.85, 0.85}) do
+        local axle = Instance.new("Part")
+        axle.Name = "BoardAxle"
+        axle.Size = Vector3.new(0.12, 0.12, 0.7)
+        axle.Color = Color3.fromRGB(20, 20, 23)
+        axle.Material = Enum.Material.Metal
+        axle.Anchored = false
+        axle.CanCollide = false
+        axle.CanTouch = false
+        axle.CanQuery = false
+        axle.Massless = true
+        axle.CFrame = root.CFrame * CFrame.new(x, -3.1, 0)
+        axle.Parent = model
+        table.insert(boardParts, axle)
+    end
+    for _, obj in ipairs(boardParts) do
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = root
+        weld.Part1 = obj
+        weld.Parent = obj
+    end
+    HS.TeleBoardModels[plr] = model
+end
+function HS.SetTeleBoard(on, allPlayers)
+    HS.TeleBoardEnabled = on and true or false
+    if allPlayers ~= nil then HS.TeleBoardAll = allPlayers and true or false end
+    HS.ClearTeleBoards()
+    if not HS.TeleBoardEnabled then
+        Notify("HyperSun 2.6 Beta Fix · Tele Board", "Đã tắt ván trượt cầu vồng", 3)
+        return
+    end
+    local function refresh()
+        if not HS.TeleBoardEnabled or Unloaded then return end
+        for _, plr in ipairs(Players:GetPlayers()) do
+            local shouldShow = (plr == LocalPlayer) or HS.TeleBoardAll
+            if shouldShow then
+                if not HS.TeleBoardModels[plr] or not HS.TeleBoardModels[plr].Parent then
+                    HS.TeleBoardModels[plr] = nil
+                    HS.MakeTeleBoard(plr)
+                end
+            elseif HS.TeleBoardModels[plr] then
+                pcall(function() HS.TeleBoardModels[plr]:Destroy() end)
+                HS.TeleBoardModels[plr] = nil
+            end
+        end
+        for plr, model in pairs(HS.TeleBoardModels) do
+            if not plr.Parent or not plr.Character or not model.Parent then
+                pcall(function() model:Destroy() end)
+                HS.TeleBoardModels[plr] = nil
+            end
+        end
+    end
+    refresh()
+    HS.TeleBoardConnection = RunService.Heartbeat:Connect(refresh)
+    Notify("HyperSun 2.6 Beta Fix · Tele Board", HS.TeleBoardAll and "Ván trượt hiển thị dưới mọi người chơi trên máy bạn" or "Ván trượt chỉ hiển thị dưới chân bạn", 4)
+end
+CreateHeader(HS.TabFly, "TELE BOARD")
+CreateButton(HS.TabFly, "Tele Board · Chỉ riêng tôi", function() HS.SetTeleBoard(not HS.TeleBoardEnabled, false) end)
+CreateButton(HS.TabFly, "Tele Board · Tất cả người chơi", function() HS.SetTeleBoard(not HS.TeleBoardEnabled, true) end)
+CreateLabel(HS.TabFly, "Tùy chọn tất cả chỉ là hiệu ứng cục bộ trên máy bạn, không thay đổi game/server hay màn hình người khác.", C.Sub)
 
 -- TeleBack: save a location, then return to it with a separate floating button.
 HS.TeleBackSavedCFrame = nil
@@ -2453,6 +2575,7 @@ pcall(function() if State.Memory.FastAttack then HS.SetFastAttack(false) end end
 pcall(function() HS.SetAutoHeal(false) end)
 pcall(function() HS.SetFreezeMarker(false) end)
 pcall(function() HS.SetTeleX3(false) end)
+pcall(function() HS.SetTeleBoard(false) end)
 pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
 for _, c in ipairs(Connections) do pcall(function() c:Disconnect() end) end
 ClearTableCompat(Connections)
@@ -2476,7 +2599,7 @@ function HS.SafeFeatureCall(featureName, fn, ...)
     local args = {...}
     local ok, err = pcall(function() fn(table.unpack(args)) end)
     if not ok then
-        warn("[Hyper Sun 2.5 Elite Beta Fix] " .. tostring(featureName) .. ": " .. tostring(err))
+        warn("[Hyper Sun 2.6 Beta Fix] " .. tostring(featureName) .. ": " .. tostring(err))
         if not HS.FeatureErrorShown[featureName] then
             HS.FeatureErrorShown[featureName] = true
             pcall(function()
