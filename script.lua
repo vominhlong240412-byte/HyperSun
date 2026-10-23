@@ -57,10 +57,10 @@ HasDrawing = true
 end)
 
 local C = {
-Panel = Color3.fromRGB(8, 8, 10),
-Item = Color3.fromRGB(24, 15, 17),
-Tab = Color3.fromRGB(30, 13, 16),
-Accent = Color3.fromRGB(255, 45, 65),
+Panel = Color3.fromRGB(10, 10, 13),
+Item = Color3.fromRGB(28, 12, 16),
+Tab = Color3.fromRGB(38, 10, 15),
+Accent = Color3.fromRGB(255, 35, 55),
 Text = Color3.fromRGB(245, 242, 243),
 Sub = Color3.fromRGB(177, 155, 160),
 Off = Color3.fromRGB(55, 35, 39),
@@ -71,8 +71,8 @@ local FONT_N = Enum.Font.GothamSemibold
 local FONT_TITLE = Enum.Font.GothamBlack
 local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
-local WIN_W, WIN_H = 470, 370
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.4 Elite Beta</font>'
+local WIN_W, WIN_H = 440, 350
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.5 Elite Beta Fix</font>'
 
 local State = {
 Features = { Apply = false, Aimbot = false, ESP = false, Bypass = false, TeamCheck = false, WallCheck = false },
@@ -335,13 +335,13 @@ end
 task.spawn(function()
 task.wait(4)
 if Unloaded then return end
-Notify("HyperSun loaded", "HyperSun 2.4 Beta", 5)
+Notify("HyperSun loaded", "Hyper Sun 2.5 Elite Beta Fix", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("Lib loading", "HyperSun 2.4 Beta", 5)
+Notify("Lib loading", "Hyper Sun 2.5 Elite Beta Fix", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("64bit", "HyperSun 2.4 Beta", 5)
+Notify("64bit", "Hyper Sun 2.5 Elite Beta Fix", 5)
 if not HasDrawing then
 task.wait(5)
 Notify("Cảnh báo", "Executor không có Drawing: ESP/FOV tắt", 5)
@@ -633,7 +633,7 @@ Text = "", AutoButtonColor = false
 Create("UICorner", { CornerRadius = UDim.new(0, 7) }, row)
 Create("TextLabel", {
 Size = UDim2.new(1, -68, 1, 0), Position = UDim2.new(0, 12, 0, 0), BackgroundTransparency = 1,
-Text = text, TextColor3 = C.Text, Font = FONT_N, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
+Text = text, TextColor3 = C.Text, Font = FONT_N, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left,
 TextTruncate = Enum.TextTruncate.AtEnd
 }, row)
 local sw = HS.BuildSwitch(row, UDim2.new(1, -10, 0.5, 0), default)
@@ -663,7 +663,7 @@ local frame = Create("Frame", { Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 
 Create("UICorner", { CornerRadius = UDim.new(0, 7) }, frame)
 Create("TextLabel", {
 Size = UDim2.new(1, -76, 0, 22), Position = UDim2.new(0, 12, 0, 5), BackgroundTransparency = 1,
-Text = text, TextColor3 = C.Text, Font = FONT_N, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
+Text = text, TextColor3 = C.Text, Font = FONT_N, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left,
 TextTruncate = Enum.TextTruncate.AtEnd
 }, frame)
 local valLbl = Create("TextLabel", {
@@ -732,7 +732,7 @@ local visible = {}
 for _, frame in ipairs(HS.FloatingFrames) do
 if frame and frame.Parent and frame.Visible then table.insert(visible, frame) end
 end
-local step = 44
+local step = 34
 for i, frame in ipairs(visible) do
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.Position = UDim2.new(0.5, 0, 0.5, (i - (#visible + 1) / 2) * step)
@@ -741,15 +741,15 @@ end
 end
 function HS.CreateFloat(label, y)
 local f = Create("Frame", {
-Size = UDim2.new(0, 150, 0, 36), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.Panel,
+Size = UDim2.new(0, 124, 0, 29), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.Panel,
 BackgroundTransparency = 0.1, Visible = false, ZIndex = 50
 }, ScreenGui)
 table.insert(HS.FloatingFrames, f)
-Create("UICorner", { CornerRadius = UDim.new(0, 9) }, f)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, f)
 Create("UIStroke", { Color = C.Accent, Thickness = 1, Transparency = 0.4 }, f)
 Create("TextLabel", {
-Size = UDim2.new(1, -66, 1, 0), Position = UDim2.new(0, 12, 0, 0), BackgroundTransparency = 1,
-Text = label, TextColor3 = C.Text, Font = FONT_B, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
+Size = UDim2.new(1, -58, 1, 0), Position = UDim2.new(0, 8, 0, 0), BackgroundTransparency = 1,
+Text = label, TextColor3 = C.Text, Font = FONT_B, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left,
 TextTruncate = Enum.TextTruncate.AtEnd
 }, f)
 local sw = HS.BuildSwitch(f, UDim2.new(1, -10, 0.5, 0), false)
@@ -797,7 +797,7 @@ end)
 CreateToggle(HS.TabFunc, "Patched AntiBan (UI only)", false, function(s)
 State.Features.AntiBanUI = s
 if s then
-Notify("Patched AntiBan 2.4 Beta", "Trạng thái giao diện; không bảo đảm chống ban", 5)
+Notify("Patched AntiBan 2.5 Elite Beta Fix", "Trạng thái giao diện; không bảo đảm chống ban", 5)
 else
 Notify("AntiBan UI đã tắt", "Không có bảo vệ chống ban thực sự", 4)
 end
@@ -812,7 +812,7 @@ CreateLabel(HS.TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
 CreateLabel(HS.TabFunc, "Anti Kick: N/A", C.Sub)
 CreateLabel(HS.TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
 CreateLabel(HS.TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
-CreateLabel(HS.TabFunc, "By: HyperSun 2.4 Beta", C.Text)
+CreateLabel(HS.TabFunc, "By: Hyper Sun 2.5 Elite Beta Fix", C.Text)
 
 CreateHeader(HS.TabFunc, "BỘ LỌC MỤC TIÊU")
 CreateToggle(HS.TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
@@ -1502,7 +1502,8 @@ function HS.SetFreezeMarker(on)
                     end
                 end
             end
-            if best ~= HS.FreezeTarget then
+            local characterChanged = best and best.Character and HS.FreezeHighlight and HS.FreezeHighlight.Adornee ~= best.Character
+            if best ~= HS.FreezeTarget or characterChanged or (best and not HS.FreezeHighlight) then
                 HS.ClearFreezeMarker()
                 HS.FreezeTarget = best
                 if best and best.Character then
@@ -1511,24 +1512,105 @@ function HS.SetFreezeMarker(on)
                         hl.Name = "HyperSun_FreezeMarker"
                         hl.Adornee = best.Character
                         hl.FillColor = C.Accent
-                        hl.OutlineColor = Color3.new(1, 1, 1)
-                        hl.FillTransparency = 0.65
+                        hl.OutlineColor = Color3.fromRGB(255, 245, 245)
+                        hl.FillTransparency = 0.48
+                        hl.OutlineTransparency = 0
                         hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                         hl.Parent = ScreenGui
                         return hl
                     end)
                     if ok then HS.FreezeHighlight = h end
                 end
+            elseif not best and HS.FreezeHighlight then
+                HS.ClearFreezeMarker()
             end
         end)
-        Notify("Freeze", "Đã bật đánh dấu mục tiêu giữa tâm ngắm; không đóng băng người chơi thật", 4)
+        Notify("Hyper Sun 2.5 Elite Beta Fix · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
     else
-        Notify("Freeze", "Đã tắt đánh dấu mục tiêu", 3)
+        Notify("Hyper Sun 2.5 Elite Beta Fix · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
     end
 end
 HS.FreezeFloat.OnTap(function() HS.SetFreezeMarker(not HS.FreezeEnabled) end)
 CreateToggle(HS.TabMem, "Hiện nút nổi Freeze", false, function(on) HS.FreezeFloat.Show(on) end)
 CreateLabel(HS.TabMem, "Freeze chỉ đánh dấu mục tiêu cục bộ. Đóng băng người chơi khác cần quyền xử lý phía máy chủ của game.", C.Sub)
+
+-- Tele Backpack / Tele X3: local cosmetic glider and raised-arm pose.
+HS.TeleX3Enabled = false
+HS.TeleX3Objects = {}
+HS.TeleX3SavedMotors = {}
+HS.TeleX3Float = HS.CreateFloat("Tele X3", 666)
+function HS.ClearTeleX3()
+    for _, obj in ipairs(HS.TeleX3Objects) do pcall(function() obj:Destroy() end) end
+    HS.TeleX3Objects = {}
+    for motor, saved in pairs(HS.TeleX3SavedMotors) do
+        if motor and motor.Parent then pcall(function() motor.Transform = saved end) end
+    end
+    HS.TeleX3SavedMotors = {}
+end
+function HS.SetTeleX3(on)
+    HS.TeleX3Enabled = on and true or false
+    HS.TeleX3Float.SetOn(HS.TeleX3Enabled)
+    HS.ClearTeleX3()
+    if not HS.TeleX3Enabled then
+        Notify("Hyper Sun 2.5 Elite Beta Fix · Tele X3", "Đã tắt và khôi phục tư thế", 3)
+        return
+    end
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not char or not hum or not root then
+        HS.TeleX3Enabled = false
+        HS.TeleX3Float.SetOn(false)
+        Notify("Hyper Sun 2.5 Elite Beta Fix · Tele X3", "Nhân vật chưa sẵn sàng", 4)
+        return
+    end
+    -- Locally raise R6/R15 arms where Motor6D joints are available.
+    for _, motor in ipairs(char:GetDescendants()) do
+        if motor:IsA("Motor6D") and (motor.Name == "RightShoulder" or motor.Name == "LeftShoulder" or motor.Name == "Right Shoulder" or motor.Name == "Left Shoulder") then
+            HS.TeleX3SavedMotors[motor] = motor.Transform
+            pcall(function() motor.Transform = CFrame.Angles(0, 0, motor.Name:find("Left") and -math.rad(155) or math.rad(155)) end)
+        end
+    end
+    -- Simple red-black decorative glider canopy attached locally above the avatar.
+    local model = Instance.new("Model")
+    model.Name = "HyperSun_TeleX3_Glider"
+    local function part(name, size, cf, color, material)
+        local obj = Instance.new("Part")
+        obj.Name = name
+        obj.Size = size
+        obj.CFrame = cf
+        obj.Color = color
+        obj.Material = material or Enum.Material.SmoothPlastic
+        obj.Anchored = false
+        obj.CanCollide = false
+        obj.CanTouch = false
+        obj.CanQuery = false
+        obj.Massless = true
+        obj.Parent = model
+        table.insert(HS.TeleX3Objects, obj)
+        return obj
+    end
+    local base = root.Position + Vector3.new(0, 5.5, 0)
+    local canopy = part("RedCanopy", Vector3.new(5.2, 0.22, 2.1), CFrame.new(base), Color3.fromRGB(210, 18, 38), Enum.Material.Neon)
+    local stripe = part("BlackStripe", Vector3.new(5.3, 0.24, 0.28), CFrame.new(base + Vector3.new(0, 0.14, 0)), Color3.fromRGB(12, 12, 15), Enum.Material.SmoothPlastic)
+    local leftRope = part("LeftRope", Vector3.new(0.06, 2.4, 0.06), CFrame.new(root.Position + Vector3.new(-1.4, 3.8, 0)), Color3.fromRGB(245, 245, 245))
+    local rightRope = part("RightRope", Vector3.new(0.06, 2.4, 0.06), CFrame.new(root.Position + Vector3.new(1.4, 3.8, 0)), Color3.fromRGB(245, 245, 245))
+    model.Parent = char
+    local function weldToRoot(obj)
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = root
+        weld.Part1 = obj
+        weld.Parent = obj
+        obj.CFrame = root.CFrame * CFrame.new(obj.Position - root.Position)
+    end
+    for _, obj in ipairs(HS.TeleX3Objects) do weldToRoot(obj) end
+    Notify("Hyper Sun 2.5 Elite Beta Fix · Tele X3", "Đã bật dù lượn trang trí cục bộ", 4)
+end
+HS.TeleX3Float.OnTap(function() HS.SetTeleX3(not HS.TeleX3Enabled) end)
+CreateHeader(HS.TabFly, "TELE BACKPACK")
+CreateButton(HS.TabFly, "Tele X3 · Bật / Tắt dù lượn", function() HS.SetTeleX3(not HS.TeleX3Enabled) end)
+CreateToggle(HS.TabFly, "Hiện nút nổi Tele X3", false, function(on) HS.TeleX3Float.Show(on) end)
+CreateLabel(HS.TabFly, "Dù lượn và tư thế tay chỉ hiển thị cục bộ trên thiết bị của bạn.", C.Sub)
 
 -- TeleBack: save a location, then return to it with a separate floating button.
 HS.TeleBackSavedCFrame = nil
@@ -2370,6 +2452,7 @@ pcall(function() if State.Memory.FastTalk then HS.SetFastTalk(false) end end)
 pcall(function() if State.Memory.FastAttack then HS.SetFastAttack(false) end end)
 pcall(function() HS.SetAutoHeal(false) end)
 pcall(function() HS.SetFreezeMarker(false) end)
+pcall(function() HS.SetTeleX3(false) end)
 pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
 for _, c in ipairs(Connections) do pcall(function() c:Disconnect() end) end
 ClearTableCompat(Connections)
@@ -2393,7 +2476,7 @@ function HS.SafeFeatureCall(featureName, fn, ...)
     local args = {...}
     local ok, err = pcall(function() fn(table.unpack(args)) end)
     if not ok then
-        warn("[HyperSun 2.4 Beta] " .. tostring(featureName) .. ": " .. tostring(err))
+        warn("[Hyper Sun 2.5 Elite Beta Fix] " .. tostring(featureName) .. ": " .. tostring(err))
         if not HS.FeatureErrorShown[featureName] then
             HS.FeatureErrorShown[featureName] = true
             pcall(function()
