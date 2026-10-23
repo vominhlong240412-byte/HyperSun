@@ -1101,7 +1101,7 @@ end
 return true
 end
 
-;
+-- (moved to HS)
 
 function HS.SetFly(on)
 if on and State.Under.Enabled then
@@ -1551,11 +1551,11 @@ end
 
 -- Ghost clone mode: client-side clone is controllable locally; server-side invisibility is not guaranteed.
 HS.GhostEnabled = false
-;
-;
-;
-;
-;
+-- (moved to HS)
+-- (moved to HS)
+-- (moved to HS)
+-- (moved to HS)
+-- (moved to HS)
 HS.GhostSavedParts = {}
 HS.GhostSavedDecals = {}
 
@@ -1820,8 +1820,8 @@ CreateToggle(HS.TabMem, "Fast Attack (Beta) · 0,1s", false, HS.SetFastAttack)
 CreateLabel(HS.TabMem, "Thử kích hoạt Tool mỗi 0,1 giây và tăng tốc animation cục bộ. Máy chủ game vẫn có thể giới hạn tốc độ đánh/sát thương.", C.Sub)
 
 -- TeleSky2: hover at a fixed altitude and move horizontally using the normal movement controls.
-;
-;
+-- (moved to HS)
+-- (moved to HS)
 function HS.SetTeleSky2(on)
     local hrp, hum = GetHRP()
     if on then
@@ -1969,7 +1969,7 @@ HS.TeleWall2Float.Show(on)
 end)
 
 -- LockNV: giữ root tại chỗ, kể cả khi đang ở trên không; khôi phục trạng thái Anchored khi tắt.
-;
+-- (moved to HS)
 HS.SetLockNV = function(on)
 local hrp, hum = GetHRP()
 if on then
@@ -2036,7 +2036,7 @@ CreateToggle(HS.TabMem, "Speed Time (hiện nút nổi)", false, function(on)
 HS.SpeedTimeFloat.Show(on)
 end)
 
-;
+-- (moved to HS)
 function HS.SetFlyUpX2(on)
 if on and (State.Memory.FlyEnabled or State.Under.Enabled) then
 Notify("Fly X2", "Hãy tắt Fly và Under Plan trước", 4)
