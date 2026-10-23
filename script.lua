@@ -1,0 +1,2376 @@
+
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+local ContentProvider = game:GetService("ContentProvider")
+local Stats = game:GetService("Stats")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera or Workspace:WaitForChild("Camera")
+
+local Env = (getgenv and getgenv()) or _G
+if Env.HyperSunUnload then
+pcall(Env.HyperSunUnload)
+end
+pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
+
+local function GetRoot()
+if gethui then
+local ok, r = pcall(gethui)
+if ok and r then return r end
+end
+local ok = pcall(function()
+local g = Instance.new("ScreenGui")
+g.Parent = CoreGui
+g:Destroy()
+end)
+if ok then return CoreGui end
+return LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local Root = GetRoot()
+local function ClearTableCompat(t)
+for k in pairs(t) do
+t[k] = nil
+end
+end
+
+for _, name in ipairs({ "HyperSunUI", "HyperSunNotify" }) do
+pcall(function()
+local o = Root:FindFirstChild(name)
+if o then o:Destroy() end
+end)
+end
+
+local HasDrawing = false
+pcall(function()
+local t = Drawing.new("Line")
+t:Remove()
+HasDrawing = true
+end)
+
+local C = {
+Panel = Color3.fromRGB(8, 8, 10),
+Item = Color3.fromRGB(24, 15, 17),
+Tab = Color3.fromRGB(30, 13, 16),
+Accent = Color3.fromRGB(255, 45, 65),
+Text = Color3.fromRGB(245, 242, 243),
+Sub = Color3.fromRGB(177, 155, 160),
+Off = Color3.fromRGB(55, 35, 39),
+Knob = Color3.fromRGB(255, 255, 255)
+}
+local FONT_B = Enum.Font.GothamBlack
+local FONT_N = Enum.Font.GothamSemibold
+local FONT_TITLE = Enum.Font.GothamBlack
+local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local WIN_W, WIN_H = 470, 370
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.4 Elite Beta</font>'
+
+local State = {
+Features = { Apply = false, Aimbot = false, ESP = false, Bypass = false, TeamCheck = false, WallCheck = false },
+ESP = { Skeleton = false, Box = false, Count = false, Line = false, Name = false, Health = false, MaxDist = 2000 },
+Aimbot = { FOV = 120, Lock = false, Smooth = 100, Head = true, ShowFOV = true },
+Memory = {
+FlyHeight = 5, FlySpeed = 50, TeleSkyHeight = 100,
+InSky = false, OldPos = nil, FlyEnabled = false, Up = false, Down = false, SpeedTime = false, TeleWallBusy = false, FlyUpX2 = false,
+LockNV = false, LockNVData = nil, FastTalk = false, FastAttack = false, TeleSky2 = false, TeleSky2Data = nil
+},
+Under = { Enabled = false, Depth = 30, Speed = 40, Hide = true, Duration = 0, RunToken = 0, Y = nil, GroundY = nil, OverPos = nil },
+Player = {
+Speed = 16, Jump = 50, SpeedOn = false, JumpOn = false,
+InfJump = false, Noclip = false, AntiAFK = false,
+DefSpeed = 16, DefJump = 50
+},
+Chams = { Mode = "None" },
+Settings = { Sound = true, Volume = 80 }
+}
+
+local Connections = {}
+local Drawings = {}
+local ESPObjects = {}
+local ChamObjs = {}
+local UnderHidden = {}
+local LightOrig = nil
+local Unloaded = false
+
+local function Create(class, props, parent)
+local inst = Instance.new(class)
+for k, v in pairs(props) do inst[k] = v end
+inst.Parent = parent
+return inst
+end
+
+local function GetHRP()
+local c = LocalPlayer.Character
+return c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChildOfClass("Humanoid")
+end
+
+local function Alive(plr)
+local c = plr.Character
+if not c then return false end
+local h = c:FindFirstChildOfClass("Humanoid")
+return c:FindFirstChild("HumanoidRootPart") ~= nil and h ~= nil and h.Health > 0
+end
+
+local function IsEnemy(plr)
+if not State.Features.TeamCheck then return true end
+if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then return false end
+return true
+end
+
+local ClickSound = Instance.new("Sound")
+ClickSound.Name = "HyperSunClick"
+ClickSound.Volume = 0.95
+ClickSound.PlaybackSpeed = 0.72
+ClickSound.SoundId = "rbxasset://sounds/button.wav"
+ClickSound.Parent = SoundService
+local ClickEcho = Instance.new("EchoSoundEffect")
+ClickEcho.Delay = 0.12
+ClickEcho.Feedback = 0.22
+ClickEcho.WetLevel = -10
+ClickEcho.DryLevel = 0
+ClickEcho.Parent = ClickSound
+
+task.spawn(function()
+local candidates = {
+"rbxasset://sounds/button.wav",
+"rbxasset://sounds/switch.wav",
+"rbxasset://sounds/clickfast.wav"
+}
+for _, id in ipairs(candidates) do
+if Unloaded then return end
+ClickSound.SoundId = id
+pcall(function() ContentProvider:PreloadAsync({ ClickSound }) end)
+if ClickSound.TimeLength > 0 then return end
+end
+ClickSound.SoundId = candidates[1]
+end)
+
+local function Click()
+if not State.Settings.Sound or Unloaded then return end
+pcall(function()
+ClickSound.Volume = math.clamp(State.Settings.Volume / 100 * 1.12, 0, 1)
+ClickSound.PlaybackSpeed = 0.72
+ClickSound.TimePosition = 0
+ClickSound:Play()
+end)
+end
+
+local NotifyGui = Create("ScreenGui", { Name = "HyperSunNotify", ResetOnSpawn = false, IgnoreGuiInset = true }, Root)
+local NotifyContainer = Create("Frame", {
+BackgroundTransparency = 1, Position = UDim2.new(1, -20, 0, 42),
+AnchorPoint = Vector2.new(1, 0), Size = UDim2.new(0, 260, 1, -62)
+}, NotifyGui)
+Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10) }, NotifyContainer)
+
+local function Notify(title, text, duration)
+duration = duration or 5
+if Unloaded then return end
+local frame = Create("Frame", {
+Size = UDim2.new(1, 0, 0, 56), BackgroundColor3 = C.Panel,
+BackgroundTransparency = 0.04, BorderSizePixel = 0, Position = UDim2.new(0, 24, 0, 0)
+}, NotifyContainer)
+Create("UICorner", { CornerRadius = UDim.new(0, 11) }, frame)
+Create("UIStroke", { Color = C.Accent, Thickness = 1.35, Transparency = 0.12 }, frame)
+Create("UIGradient", { Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(33, 28, 62)), ColorSequenceKeypoint.new(1, C.Panel)}), Rotation = 15 }, frame)
+TweenService:Create(frame, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+Create("TextLabel", {
+BackgroundTransparency = 1, Size = UDim2.new(1, -18, 0, 21), Position = UDim2.new(0, 12, 0, 5),
+Font = FONT_B, TextColor3 = C.Text, TextSize = 14,
+TextXAlignment = Enum.TextXAlignment.Left, Text = title
+}, frame)
+Create("TextLabel", {
+BackgroundTransparency = 1, Size = UDim2.new(1, -18, 0, 16), Position = UDim2.new(0, 12, 0, 27),
+Font = FONT_N, TextColor3 = C.Sub, TextSize = 12,
+TextXAlignment = Enum.TextXAlignment.Left, Text = text
+}, frame)
+local barBg = Create("Frame", {
+Size = UDim2.new(1, -20, 0, 2), Position = UDim2.new(0, 10, 1, -8),
+BackgroundColor3 = Color3.fromRGB(50, 50, 50), BorderSizePixel = 0
+}, frame)
+local barFill = Create("Frame", {
+Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.Accent, BorderSizePixel = 0
+}, barBg)
+TweenService:Create(barFill, TweenInfo.new(duration, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 1, 0) }):Play()
+task.delay(duration, function()
+if frame and frame.Parent then
+TweenService:Create(frame, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { BackgroundTransparency = 1, Position = UDim2.new(0, 30, 0, 0) }):Play()
+task.wait(0.24)
+pcall(function() frame:Destroy() end)
+end
+end)
+end
+
+local Invis = { Enabled = false, Saved = {}, AddedConn = nil, NameMode = nil }
+local InvisToggle = nil
+local InvisFloat = nil
+
+local function InvisSave(inst, property)
+if Invis.Saved[inst] == nil then
+local ok, value = pcall(function() return inst[property] end)
+if ok then Invis.Saved[inst] = { property = property, value = value } end
+end
+end
+
+local function InvisHide(inst)
+if inst:IsA("BasePart") then
+InvisSave(inst, "LocalTransparencyModifier")
+pcall(function() inst.LocalTransparencyModifier = 1 end)
+elseif inst:IsA("Decal") or inst:IsA("Texture") then
+InvisSave(inst, "Transparency")
+pcall(function() inst.Transparency = 1 end)
+elseif inst:IsA("ParticleEmitter") or inst:IsA("Trail") or inst:IsA("Beam") then
+InvisSave(inst, "Enabled")
+pcall(function() inst.Enabled = false end)
+end
+end
+
+local function InvisApplyCharacter(char)
+if not char or not Invis.Enabled then return end
+for _, inst in ipairs(char:GetDescendants()) do
+InvisHide(inst)
+end
+if Invis.AddedConn then
+pcall(function() Invis.AddedConn:Disconnect() end)
+Invis.AddedConn = nil
+end
+Invis.AddedConn = char.DescendantAdded:Connect(function(inst)
+if Invis.Enabled then task.defer(function() if Invis.Enabled and inst.Parent then InvisHide(inst) end end) end
+end)
+local hum = char:FindFirstChildOfClass("Humanoid")
+if hum then
+pcall(function()
+Invis.NameMode = hum.DisplayDistanceType
+hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+end)
+end
+end
+
+local function InvisRestore()
+if Invis.AddedConn then pcall(function() Invis.AddedConn:Disconnect() end); Invis.AddedConn = nil end
+for inst, rec in pairs(Invis.Saved) do
+if inst and inst.Parent then pcall(function() inst[rec.property] = rec.value end) end
+end
+ClearTableCompat(Invis.Saved)
+local char = LocalPlayer.Character
+local hum = char and char:FindFirstChildOfClass("Humanoid")
+if hum and Invis.NameMode ~= nil then pcall(function() hum.DisplayDistanceType = Invis.NameMode end) end
+Invis.NameMode = nil
+end
+
+function Invis.Set(on)
+on = on and true or false
+if on == Invis.Enabled then
+if InvisToggle then InvisToggle.Set(on, false) end
+if InvisFloat then InvisFloat.SetOn(on) end
+return
+end
+Invis.Enabled = on
+if on then
+local char = LocalPlayer.Character
+if not char then
+Invis.Enabled = false
+Notify("Invisibility", "Nhân vật chưa sẵn sàng", 4)
+else
+InvisApplyCharacter(char)
+Notify("Invisibility", "Đã ẩn nhân vật trên màn hình của bạn", 4)
+end
+else
+InvisRestore()
+Notify("Invisibility", "Đã khôi phục hiển thị nhân vật", 3)
+end
+if InvisToggle then InvisToggle.Set(Invis.Enabled, false) end
+if InvisFloat then InvisFloat.SetOn(Invis.Enabled) end
+end
+
+Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function(char)
+task.wait(0.5)
+if Invis.Enabled then
+ClearTableCompat(Invis.Saved)
+InvisApplyCharacter(char)
+end
+end)
+
+local Banner = Create("Frame", {
+Size = UDim2.new(0, 178, 0, 26), Position = UDim2.new(1, -10, 0, 8), AnchorPoint = Vector2.new(1, 0),
+BackgroundColor3 = C.Panel, BackgroundTransparency = 0.2, BorderSizePixel = 0, Visible = false
+}, NotifyGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 8) }, Banner)
+Create("UIStroke", { Color = Color3.fromRGB(255, 213, 0), Thickness = 1, Transparency = 0.5 }, Banner)
+local BannerText = Create("TextLabel", {
+Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, RichText = true, Text = TITLE_RICH,
+TextColor3 = Color3.new(1, 1, 1), Font = FONT_B, TextSize = 14
+}, Banner)
+
+local BannerActive = false
+local BannerRunning = false
+local function SetBanner(on)
+BannerActive = on and true or false
+Banner.Visible = BannerActive
+BannerText.TextTransparency = 0
+if BannerActive and not BannerRunning then
+BannerRunning = true
+task.spawn(function()
+while BannerActive and not Unloaded do
+task.wait(1.7)
+if not BannerActive or Unloaded then break end
+TweenService:Create(BannerText, TweenInfo.new(0.1), { TextTransparency = 1 }):Play()
+task.wait(0.12)
+TweenService:Create(BannerText, TweenInfo.new(0.1), { TextTransparency = 0 }):Play()
+task.wait(0.1)
+end
+BannerRunning = false
+end)
+end
+end
+
+task.spawn(function()
+task.wait(4)
+if Unloaded then return end
+Notify("HyperSun loaded", "HyperSun 2.4 Beta", 5)
+task.wait(5)
+if Unloaded then return end
+Notify("Lib loading", "HyperSun 2.4 Beta", 5)
+task.wait(5)
+if Unloaded then return end
+Notify("64bit", "HyperSun 2.4 Beta", 5)
+if not HasDrawing then
+task.wait(5)
+Notify("Cảnh báo", "Executor không có Drawing: ESP/FOV tắt", 5)
+end
+end)
+
+local function MakeDraggable(frame, dragFrame)
+local dragging, dragInput, dragStart, startPos
+dragFrame.InputBegan:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+dragging = true
+dragStart = input.Position
+startPos = frame.Position
+input.Changed:Connect(function()
+if input.UserInputState == Enum.UserInputState.End then dragging = false end
+end)
+end
+end)
+dragFrame.InputChanged:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+dragInput = input
+end
+end)
+Connections[#Connections + 1] = UserInputService.InputChanged:Connect(function(input)
+if input == dragInput and dragging then
+local d = input.Position - dragStart
+frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+end
+end)
+end
+
+local function OnTap(btn, fn)
+local startPos
+btn.InputBegan:Connect(function(i)
+if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+startPos = i.Position
+end
+end)
+btn.InputEnded:Connect(function(i)
+if (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1) and startPos then
+if (i.Position - startPos).Magnitude < 12 then
+Click()
+task.spawn(fn)
+end
+startPos = nil
+end
+end)
+end
+
+local ScreenGui = Create("ScreenGui", { Name = "HyperSunUI", ResetOnSpawn = false, IgnoreGuiInset = true }, Root)
+
+local Main = Create("Frame", {
+Size = UDim2.new(0, WIN_W, 0, WIN_H), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
+BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.06, BorderSizePixel = 0, ClipsDescendants = true
+}, ScreenGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 12) }, Main)
+Create("UIStroke", { Color = Color3.fromRGB(255, 45, 65), Thickness = 1.8, Transparency = 0.08 }, Main)
+Create("UIGradient", {
+Color = ColorSequence.new(Color3.fromRGB(48, 9, 16), Color3.fromRGB(7, 7, 9)),
+Rotation = 90
+}, Main)
+
+local vp = Camera.ViewportSize
+local startScale = math.clamp((vp.Y - 24) / WIN_H, 0.5, 1.2)
+local MainScale = Create("UIScale", { Scale = startScale }, Main)
+
+local TopBar = Create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1 }, Main)
+local CollapseBtn = Create("TextButton", {
+Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1,
+Text = "▼", TextColor3 = C.Text, Font = FONT_B, TextSize = 15, ZIndex = 3
+}, TopBar)
+Create("TextLabel", {
+Size = UDim2.new(1, -90, 1, 0), Position = UDim2.new(0, 38, 0, 0), BackgroundTransparency = 1,
+RichText = true, Text = TITLE_RICH, TextColor3 = C.Text, Font = FONT_B, TextSize = 15,
+TextXAlignment = Enum.TextXAlignment.Left
+}, TopBar)
+local CloseBtn = Create("TextButton", {
+Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(1, -36, 0, 0), BackgroundTransparency = 1,
+Text = "X", TextColor3 = C.Sub, Font = FONT_B, TextSize = 15, ZIndex = 3
+}, TopBar)
+Create("Frame", {
+Size = UDim2.new(1, -16, 0, 1), Position = UDim2.new(0, 8, 1, -1),
+BackgroundColor3 = Color3.fromRGB(255, 45, 65), BackgroundTransparency = 0.28, BorderSizePixel = 0
+}, TopBar)
+
+MakeDraggable(Main, TopBar)
+
+local Body = Create("Frame", {
+Size = UDim2.new(1, 0, 1, -36), Position = UDim2.new(0, 0, 0, 36), BackgroundTransparency = 1
+}, Main)
+
+local Sidebar = Create("ScrollingFrame", {
+Size = UDim2.new(0, 114, 1, -38), Position = UDim2.new(0, 8, 0, 0), BackgroundTransparency = 1,
+BorderSizePixel = 0, ScrollBarThickness = 0,
+CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
+}, Body)
+Create("UIListLayout", { Padding = UDim.new(0, 7), SortOrder = Enum.SortOrder.LayoutOrder }, Sidebar)
+
+local Content = Create("ScrollingFrame", {
+Size = UDim2.new(1, -136, 1, -38), Position = UDim2.new(0, 128, 0, 0),
+BackgroundColor3 = Color3.fromRGB(10, 7, 8), BackgroundTransparency = 0.18,
+BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = C.Accent,
+CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
+}, Body)
+Create("UICorner", { CornerRadius = UDim.new(0, 9) }, Content)
+Create("UIPadding", {
+PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8),
+PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 10)
+}, Content)
+
+local Footer = Create("Frame", {
+Size = UDim2.new(1, -16, 0, 24), Position = UDim2.new(0, 8, 1, -28),
+BackgroundColor3 = C.Panel, BackgroundTransparency = 0.3, BorderSizePixel = 0
+}, Body)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, Footer)
+local FooterStats = Create("TextLabel", {
+Size = UDim2.new(0.6, 0, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
+Text = "FPS --  |  Ping -- ms  |  Players --", TextColor3 = C.Sub, Font = FONT_N, TextSize = 12,
+TextXAlignment = Enum.TextXAlignment.Left
+}, Footer)
+Create("TextLabel", {
+Size = UDim2.new(0.4, -10, 1, 0), Position = UDim2.new(0.6, 0, 0, 0), BackgroundTransparency = 1,
+RichText = true, Text = TITLE_RICH, TextColor3 = C.Text, Font = FONT_B, TextSize = 12,
+TextXAlignment = Enum.TextXAlignment.Right
+}, Footer)
+
+local MenuIcon = Create("TextButton", {
+Size = UDim2.new(0, 48, 0, 48), Position = UDim2.new(0, 14, 0.5, -24), BackgroundColor3 = C.Panel,
+Text = "✦", TextColor3 = Color3.fromRGB(255, 255, 255), Font = FONT_B, TextSize = 27, Visible = false
+}, ScreenGui)
+Create("UICorner", { CornerRadius = UDim.new(1, 0) }, MenuIcon)
+Create("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(255, 35, 58), Color3.fromRGB(105, 5, 18)), Rotation = 35 }, MenuIcon)
+Create("UIStroke", { Color = Color3.fromRGB(255, 65, 82), Thickness = 2 }, MenuIcon)
+MakeDraggable(MenuIcon, MenuIcon)
+
+-- Animated startup title: letter-by-letter reveal with a red glow.
+task.spawn(function()
+    if Unloaded or not ScreenGui.Parent then return end
+    local splash = Create("Frame", {
+        Name = "HyperSunIntro", Size = UDim2.new(0, 300, 0, 76),
+        Position = UDim2.new(0.5, 0, 0.38, 0), AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(8, 6, 8), BackgroundTransparency = 0.08,
+        BorderSizePixel = 0, ZIndex = 80
+    }, ScreenGui)
+    Create("UICorner", { CornerRadius = UDim.new(0, 14) }, splash)
+    Create("UIStroke", { Color = Color3.fromRGB(255, 45, 65), Thickness = 2, Transparency = 0.12 }, splash)
+    local glow = Create("UIGradient", {
+        Color = ColorSequence.new(Color3.fromRGB(48, 8, 16), Color3.fromRGB(8, 8, 10)), Rotation = 15
+    }, splash)
+    local title = Create("TextLabel", {
+        Size = UDim2.new(1, -18, 1, -8), Position = UDim2.new(0, 9, 0, 4),
+        BackgroundTransparency = 1, Text = "", RichText = true, TextColor3 = Color3.new(1,1,1),
+        Font = Enum.Font.GothamBlack, TextSize = 22, TextWrapped = true, ZIndex = 81
+    }, splash)
+    local full = "Hyper Sun 2.3 ELITE"
+    for i = 1, #full do
+        if Unloaded or not splash.Parent then break end
+        local part = string.sub(full, 1, i)
+        local splitAt = math.min(#part, 10)
+        local brand = string.sub(part, 1, splitAt)
+        local edition = string.sub(part, splitAt + 1)
+        title.Text = '<font color="#FF263F">' .. brand .. '</font><font color="#FFFFFF">' .. edition .. '</font>'
+        title.TextStrokeColor3 = Color3.fromRGB(255, 30, 55)
+        title.TextStrokeTransparency = 0.45
+        task.wait(0.065)
+    end
+    if splash.Parent then
+        task.wait(1.1)
+        TweenService:Create(splash, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(title, TweenInfo.new(0.45), {TextTransparency = 1}):Play()
+        task.wait(0.5)
+        if splash.Parent then splash:Destroy() end
+    end
+end)
+
+local Collapsed = false
+CollapseBtn.MouseButton1Click:Connect(function()
+Click()
+Collapsed = not Collapsed
+Body.Visible = not Collapsed
+CollapseBtn.Text = Collapsed and "▶" or "▼"
+Main.Size = Collapsed and UDim2.new(0, WIN_W, 0, 36) or UDim2.new(0, WIN_W, 0, WIN_H)
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+Click()
+Main.Visible = false
+MenuIcon.Visible = true
+end)
+OnTap(MenuIcon, function()
+MenuIcon.Visible = false
+Main.Visible = true
+end)
+
+Connections[#Connections + 1] = UserInputService.InputBegan:Connect(function(input, gpe)
+if gpe then return end
+if input.KeyCode == Enum.KeyCode.RightShift then
+local show = not Main.Visible
+Main.Visible = show
+MenuIcon.Visible = not show
+end
+end)
+
+local Tabs = {}
+local function SelectTab(name)
+for n, t in pairs(Tabs) do
+local on = (n == name)
+t.Frame.Visible = on
+t.Btn.BackgroundColor3 = on and C.Accent or C.Tab
+t.Btn.TextColor3 = on and Color3.new(1, 1, 1) or Color3.fromRGB(200, 200, 200)
+end
+Content.CanvasPosition = Vector2.new(0, 0)
+end
+
+local function CreateTab(name)
+local btn = Create("TextButton", {
+Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = C.Tab, BackgroundTransparency = 0.1, Text = name,
+TextColor3 = Color3.fromRGB(200, 200, 200), Font = FONT_B, TextSize = 14, AutoButtonColor = false
+}, Sidebar)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, btn)
+local frame = Create("Frame", {
+Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Visible = false
+}, Content)
+Create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, frame)
+Tabs[name] = { Btn = btn, Frame = frame }
+btn.MouseEnter:Connect(function()
+if Tabs[name] and Tabs[name].Frame.Visible then return end
+TweenService:Create(btn, TI, {BackgroundTransparency = 0}):Play()
+end)
+btn.MouseLeave:Connect(function()
+TweenService:Create(btn, TI, {BackgroundTransparency = 0.1}):Play()
+end)
+btn.MouseButton1Click:Connect(function()
+Click()
+SelectTab(name)
+end)
+return frame
+end
+
+local function CreateHeader(parent, text)
+local h = Create("Frame", { Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1 }, parent)
+Create("Frame", {
+Size = UDim2.new(0, 3, 0, 12), Position = UDim2.new(0, 2, 0.5, -6),
+BackgroundColor3 = C.Accent, BorderSizePixel = 0
+}, h)
+Create("TextLabel", {
+Size = UDim2.new(1, -12, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
+Text = text, TextColor3 = C.Accent, Font = FONT_B, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left
+}, h)
+return h
+end
+
+local function CreateLabel(parent, text, color)
+return Create("TextLabel", {
+Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, Text = text,
+TextColor3 = color or C.Sub, Font = FONT_N, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left,
+RichText = true
+}, parent)
+end
+
+local function BuildSwitch(parent, pos, on)
+local track = Create("Frame", {
+Size = UDim2.new(0, 46, 0, 24), Position = pos, AnchorPoint = Vector2.new(1, 0.5),
+BackgroundColor3 = on and C.Accent or C.Off, BorderSizePixel = 0
+}, parent)
+Create("UICorner", { CornerRadius = UDim.new(1, 0) }, track)
+Create("UIGradient", {
+Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(185, 185, 185)), Rotation = 90
+}, track)
+local knob = Create("Frame", {
+Size = UDim2.new(0, 20, 0, 20),
+Position = on and UDim2.new(0, 24, 0.5, -10) or UDim2.new(0, 2, 0.5, -10),
+BackgroundColor3 = C.Knob, BorderSizePixel = 0
+}, track)
+Create("UICorner", { CornerRadius = UDim.new(1, 0) }, knob)
+local sw = {}
+function sw.Set(v)
+TweenService:Create(track, TI, { BackgroundColor3 = v and C.Accent or C.Off }):Play()
+TweenService:Create(knob, TI, { Position = v and UDim2.new(0, 24, 0.5, -10) or UDim2.new(0, 2, 0.5, -10) }):Play()
+end
+return sw
+end
+
+local function CreateToggle(parent, text, default, callback)
+local row = Create("TextButton", {
+Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = C.Item, BackgroundTransparency = 0.2,
+Text = "", AutoButtonColor = false
+}, parent)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, row)
+Create("TextLabel", {
+Size = UDim2.new(1, -68, 1, 0), Position = UDim2.new(0, 12, 0, 0), BackgroundTransparency = 1,
+Text = text, TextColor3 = C.Text, Font = FONT_N, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
+TextTruncate = Enum.TextTruncate.AtEnd
+}, row)
+local sw = BuildSwitch(row, UDim2.new(1, -10, 0.5, 0), default)
+local state = default
+local obj = {}
+function obj.Set(v, fire)
+state = v and true or false
+sw.Set(state)
+if fire and callback then task.spawn(callback, state) end
+end
+function obj.Get() return state end
+row.MouseEnter:Connect(function()
+TweenService:Create(row, TI, {BackgroundTransparency = 0.04}):Play()
+end)
+row.MouseLeave:Connect(function()
+TweenService:Create(row, TI, {BackgroundTransparency = 0.2}):Play()
+end)
+row.MouseButton1Click:Connect(function()
+Click()
+obj.Set(not state, true)
+end)
+return obj
+end
+
+local function CreateSlider(parent, text, min, max, default, callback)
+local frame = Create("Frame", { Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = C.Item, BackgroundTransparency = 0.2 }, parent)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, frame)
+Create("TextLabel", {
+Size = UDim2.new(1, -76, 0, 22), Position = UDim2.new(0, 12, 0, 5), BackgroundTransparency = 1,
+Text = text, TextColor3 = C.Text, Font = FONT_N, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
+TextTruncate = Enum.TextTruncate.AtEnd
+}, frame)
+local valLbl = Create("TextLabel", {
+Size = UDim2.new(0, 60, 0, 22), Position = UDim2.new(1, -70, 0, 5), BackgroundTransparency = 1,
+Text = tostring(default), TextColor3 = C.Accent, Font = FONT_B, TextSize = 14,
+TextXAlignment = Enum.TextXAlignment.Right
+}, frame)
+local bar = Create("TextButton", {
+Size = UDim2.new(1, -24, 0, 7), Position = UDim2.new(0, 12, 1, -16), BackgroundColor3 = C.Off,
+Text = "", AutoButtonColor = false
+}, frame)
+Create("UICorner", { CornerRadius = UDim.new(1, 0) }, bar)
+local fill = Create("Frame", {
+Size = UDim2.new((default - min) / (max - min), 0, 1, 0), BackgroundColor3 = C.Accent, BorderSizePixel = 0
+}, bar)
+Create("UICorner", { CornerRadius = UDim.new(1, 0) }, fill)
+
+local dragging = false
+local function update(input)
+local w = math.max(bar.AbsoluteSize.X, 1)
+local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / w, 0, 1)
+local val = math.floor(min + (max - min) * pos + 0.5)
+fill.Size = UDim2.new(pos, 0, 1, 0)
+valLbl.Text = tostring(val)
+if callback then task.spawn(callback, val) end
+end
+bar.InputBegan:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+dragging = true
+Content.ScrollingEnabled = false
+Click()
+update(input)
+end
+end)
+Connections[#Connections + 1] = UserInputService.InputChanged:Connect(function(input)
+if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+update(input)
+end
+end)
+Connections[#Connections + 1] = UserInputService.InputEnded:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+if dragging then
+dragging = false
+Content.ScrollingEnabled = true
+end
+end
+end)
+end
+
+local function CreateButton(parent, text, callback)
+local b = Create("TextButton", {
+Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = C.Item, BackgroundTransparency = 0.2, Text = text,
+TextColor3 = C.Text, Font = FONT_N, TextSize = 14, AutoButtonColor = false
+}, parent)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, b)
+b.MouseButton1Click:Connect(function()
+Click()
+if callback then task.spawn(callback) end
+end)
+return b
+end
+
+local FloatingFrames = {}
+local function RefreshFloatPositions()
+local visible = {}
+for _, frame in ipairs(FloatingFrames) do
+if frame and frame.Parent and frame.Visible then table.insert(visible, frame) end
+end
+local step = 44
+for i, frame in ipairs(visible) do
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.Position = UDim2.new(0.5, 0, 0.5, (i - (#visible + 1) / 2) * step)
+frame.ZIndex = 50 + i
+end
+end
+local function CreateFloat(label, y)
+local f = Create("Frame", {
+Size = UDim2.new(0, 150, 0, 36), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.Panel,
+BackgroundTransparency = 0.1, Visible = false, ZIndex = 50
+}, ScreenGui)
+table.insert(FloatingFrames, f)
+Create("UICorner", { CornerRadius = UDim.new(0, 9) }, f)
+Create("UIStroke", { Color = C.Accent, Thickness = 1, Transparency = 0.4 }, f)
+Create("TextLabel", {
+Size = UDim2.new(1, -66, 1, 0), Position = UDim2.new(0, 12, 0, 0), BackgroundTransparency = 1,
+Text = label, TextColor3 = C.Text, Font = FONT_B, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
+TextTruncate = Enum.TextTruncate.AtEnd
+}, f)
+local sw = BuildSwitch(f, UDim2.new(1, -10, 0.5, 0), false)
+MakeDraggable(f, f)
+local obj = { Frame = f }
+function obj.Show(v)
+f.Visible = v and true or false
+RefreshFloatPositions()
+end
+function obj.SetOn(v) sw.Set(v) end
+function obj.OnTap(fn) OnTap(f, fn) end
+function obj.Hold(key)
+f.InputBegan:Connect(function(i)
+if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+State.Memory[key] = true
+sw.Set(true)
+Click()
+end
+end)
+f.InputEnded:Connect(function(i)
+if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+State.Memory[key] = false
+sw.Set(false)
+end
+end)
+end
+function obj.Flash()
+sw.Set(true)
+task.delay(0.35, function() sw.Set(false) end)
+end
+return obj
+end
+
+local TabFunc = CreateTab("Function")
+CreateHeader(TabFunc, "CHỨC NĂNG CHÍNH")
+CreateLabel(TabFunc, "Bản Fix: nếu module lỗi, thông báo sẽ hiển thị chi tiết thay vì bị ẩn.", C.Sub)
+CreateToggle(TabFunc, "Áp dụng Các chức năng", false, function(s) State.Features.Apply = s end)
+CreateToggle(TabFunc, "Áp dụng Aimbot", false, function(s) State.Features.Aimbot = s end)
+CreateToggle(TabFunc, "Áp dụng ESP", false, function(s) State.Features.ESP = s end)
+CreateToggle(TabFunc, "Bypass", false, function(s)
+State.Features.Bypass = s
+SetBanner(s)
+Notify(s and "Bypass UI đã bật" or "Bypass UI đã tắt", s and "Hiệu ứng giao diện được kích hoạt" or "Đã dừng hiệu ứng giao diện", 4)
+end)
+CreateToggle(TabFunc, "Patched AntiBan (UI only)", false, function(s)
+State.Features.AntiBanUI = s
+if s then
+Notify("Patched AntiBan 2.4 Beta", "Trạng thái giao diện; không bảo đảm chống ban", 5)
+else
+Notify("AntiBan UI đã tắt", "Không có bảo vệ chống ban thực sự", 4)
+end
+end)
+
+CreateHeader(TabFunc, "THÔNG TIN SCRIPT")
+local activationTime = os.date("%Y-%m-%d %H:%M:%S")
+CreateLabel(TabFunc, "Username Roblox: " .. tostring(LocalPlayer.Name), C.Text)
+CreateLabel(TabFunc, "Giờ kích hoạt: " .. activationTime, C.Sub)
+CreateLabel(TabFunc, "Thời hạn key: N/A", C.Sub)
+CreateLabel(TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
+CreateLabel(TabFunc, "Anti Kick: N/A", C.Sub)
+CreateLabel(TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
+CreateLabel(TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
+CreateLabel(TabFunc, "By: HyperSun 2.4 Beta", C.Text)
+
+CreateHeader(TabFunc, "BỘ LỌC MỤC TIÊU")
+CreateToggle(TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
+CreateToggle(TabFunc, "Wall Check", false, function(s) State.Features.WallCheck = s end)
+
+
+local TabAdmin = CreateTab("Admin")
+CreateHeader(TabAdmin, "ADMIN")
+CreateButton(TabAdmin, "Anti Report", function()
+Notify("Anti Report ON!", "", 3)
+end)
+CreateLabel(TabAdmin, "Anti Report chỉ hiển thị thông báo; không chặn báo cáo thật.", C.Sub)
+
+local TabAimbot = CreateTab("AimBot")
+CreateSlider(TabAimbot, "Chỉnh FOV định vị", 1, 360, 120, function(v) State.Aimbot.FOV = v end)
+CreateSlider(TabAimbot, "Độ gắt (100 = khóa cứng)", 1, 100, 100, function(v) State.Aimbot.Smooth = v end)
+CreateToggle(TabAimbot, "Aim Lock", false, function(s) State.Aimbot.Lock = s end)
+CreateToggle(TabAimbot, "Nhắm vào Đầu", true, function(s) State.Aimbot.Head = s end)
+CreateToggle(TabAimbot, "Hiện vòng FOV", true, function(s) State.Aimbot.ShowFOV = s end)
+
+local FOVCircle = nil
+if HasDrawing then
+FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1
+FOVCircle.Color = C.Accent
+FOVCircle.Filled = false
+FOVCircle.NumSides = 64
+FOVCircle.Visible = false
+Drawings.FOV = FOVCircle
+end
+
+local function IsVisible(part, char)
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = { LocalPlayer.Character, char }
+local origin = Camera.CFrame.Position
+local res = Workspace:Raycast(origin, part.Position - origin, params)
+return res == nil
+end
+
+local function GetTarget()
+local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+local best, shortest = nil, State.Aimbot.FOV
+for _, plr in ipairs(Players:GetPlayers()) do
+if plr ~= LocalPlayer and Alive(plr) and IsEnemy(plr) then
+local char = plr.Character
+local part = (State.Aimbot.Head and char:FindFirstChild("Head")) or char:FindFirstChild("HumanoidRootPart")
+if part then
+local sp, on = Camera:WorldToViewportPoint(part.Position)
+if on then
+local d = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+if d < shortest and (not State.Features.WallCheck or IsVisible(part, char)) then
+shortest = d
+best = part
+end
+end
+end
+end
+end
+return best
+end
+
+local function UpdateAimbot()
+local active = State.Features.Apply and State.Features.Aimbot
+if FOVCircle then
+FOVCircle.Radius = State.Aimbot.FOV
+FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+FOVCircle.Visible = active and State.Aimbot.ShowFOV
+end
+if not active or not State.Aimbot.Lock then return end
+
+local target = GetTarget()
+if target then
+local goal = CFrame.new(Camera.CFrame.Position, target.Position)
+Camera.CFrame = Camera.CFrame:Lerp(goal, math.clamp(State.Aimbot.Smooth / 100, 0.01, 1))
+end
+end
+
+RunService:BindToRenderStep("HyperSunAim", Enum.RenderPriority.Camera.Value + 1, function()
+if Unloaded then return end
+Camera = Workspace.CurrentCamera or Camera
+pcall(UpdateAimbot)
+end)
+
+local TabESP = CreateTab("Esp")
+CreateToggle(TabESP, "ESP Skeleton", false, function(s) State.ESP.Skeleton = s end)
+CreateToggle(TabESP, "ESP Box", false, function(s) State.ESP.Box = s end)
+CreateToggle(TabESP, "ESP Count", false, function(s) State.ESP.Count = s end)
+CreateToggle(TabESP, "ESP Line", false, function(s) State.ESP.Line = s end)
+CreateToggle(TabESP, "ESP Name", false, function(s) State.ESP.Name = s end)
+CreateToggle(TabESP, "ESP Health", false, function(s) State.ESP.Health = s end)
+CreateSlider(TabESP, "Khoảng cách tối đa", 50, 5000, 2000, function(v) State.ESP.MaxDist = v end)
+
+local R15 = {
+{ "Head", "UpperTorso" }, { "UpperTorso", "LowerTorso" },
+{ "UpperTorso", "LeftUpperArm" }, { "LeftUpperArm", "LeftLowerArm" }, { "LeftLowerArm", "LeftHand" },
+{ "UpperTorso", "RightUpperArm" }, { "RightUpperArm", "RightLowerArm" }, { "RightLowerArm", "RightHand" },
+{ "LowerTorso", "LeftUpperLeg" }, { "LeftUpperLeg", "LeftLowerLeg" }, { "LeftLowerLeg", "LeftFoot" },
+{ "LowerTorso", "RightUpperLeg" }, { "RightUpperLeg", "RightLowerLeg" }, { "RightLowerLeg", "RightFoot" },
+}
+local R6 = {
+{ "Head", "Torso" }, { "Torso", "Left Arm" }, { "Torso", "Right Arm" },
+{ "Torso", "Left Leg" }, { "Torso", "Right Leg" },
+}
+
+local function NewESP()
+local o = {
+Box = Drawing.new("Square"), Name = Drawing.new("Text"), Line = Drawing.new("Line"),
+Health = Drawing.new("Line"), SkeletonLines = {}
+}
+o.Box.Thickness = 1; o.Box.Color = Color3.new(1, 1, 1); o.Box.Filled = false
+o.Name.Size = 14; o.Name.Center = true; o.Name.Outline = true; o.Name.Color = Color3.new(1, 1, 1)
+o.Line.Thickness = 1; o.Line.Color = Color3.new(1, 1, 1)
+o.Health.Thickness = 3
+return o
+end
+
+local function HideESP(o)
+o.Box.Visible = false
+o.Name.Visible = false
+o.Line.Visible = false
+o.Health.Visible = false
+for _, l in pairs(o.SkeletonLines) do l.Visible = false end
+end
+
+local function RemoveESP(plr)
+local o = ESPObjects[plr]
+if not o then return end
+pcall(function() o.Box:Remove() end)
+pcall(function() o.Name:Remove() end)
+pcall(function() o.Line:Remove() end)
+pcall(function() o.Health:Remove() end)
+for _, l in pairs(o.SkeletonLines) do pcall(function() l:Remove() end) end
+ESPObjects[plr] = nil
+end
+
+local function UpdateESP()
+if not HasDrawing then return end
+if not State.Features.Apply or not State.Features.ESP then
+for _, o in pairs(ESPObjects) do HideESP(o) end
+if Drawings.PlayerCount then Drawings.PlayerCount.Visible = false end
+return
+end
+
+local count = 0
+for _, plr in ipairs(Players:GetPlayers()) do
+if plr ~= LocalPlayer then
+if Alive(plr) and IsEnemy(plr) then
+count = count + 1
+local char = plr.Character
+local hrp = char.HumanoidRootPart
+local hum = char:FindFirstChildOfClass("Humanoid")
+if not ESPObjects[plr] then ESPObjects[plr] = NewESP() end
+local esp = ESPObjects[plr]
+local sp, on = Camera:WorldToViewportPoint(hrp.Position)
+local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
+
+if on and dist < State.ESP.MaxDist then
+local top = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 2.5, 0))
+local bot = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 2.5, 0))
+local h = math.max(math.abs(top.Y - bot.Y), 4)
+local boxSize = Vector2.new(h * 0.6, h)
+local boxPos = Vector2.new(sp.X - boxSize.X / 2, sp.Y - boxSize.Y / 2)
+
+esp.Box.Size = boxSize
+esp.Box.Position = boxPos
+esp.Box.Visible = State.ESP.Box
+
+esp.Name.Text = plr.Name .. " [" .. math.floor(dist) .. "m]"
+esp.Name.Position = Vector2.new(sp.X, boxPos.Y - 18)
+esp.Name.Visible = State.ESP.Name
+
+esp.Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0)
+esp.Line.To = Vector2.new(sp.X, sp.Y)
+esp.Line.Visible = State.ESP.Line
+
+local pct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+local hx = boxPos.X - 5
+local hb = boxPos.Y + boxSize.Y
+esp.Health.From = Vector2.new(hx, hb)
+esp.Health.To = Vector2.new(hx, hb - boxSize.Y * pct)
+esp.Health.Color = Color3.new(1 - pct, pct, 0)
+esp.Health.Visible = State.ESP.Health
+
+local list = char:FindFirstChild("UpperTorso") and R15 or R6
+for i, pr in ipairs(list) do
+local p1, p2 = char:FindFirstChild(pr[1]), char:FindFirstChild(pr[2])
+local l = esp.SkeletonLines[i]
+if not l then
+l = Drawing.new("Line")
+l.Thickness = 1
+l.Color = Color3.new(1, 1, 1)
+esp.SkeletonLines[i] = l
+end
+if p1 and p2 and State.ESP.Skeleton then
+local s1, o1 = Camera:WorldToViewportPoint(p1.Position)
+local s2, o2 = Camera:WorldToViewportPoint(p2.Position)
+l.From = Vector2.new(s1.X, s1.Y)
+l.To = Vector2.new(s2.X, s2.Y)
+l.Visible = o1 and o2
+else
+l.Visible = false
+end
+end
+else
+HideESP(esp)
+end
+elseif ESPObjects[plr] then
+HideESP(ESPObjects[plr])
+end
+end
+end
+
+if State.ESP.Count then
+if not Drawings.PlayerCount then
+local t = Drawing.new("Text")
+t.Size = 16
+t.Color = Color3.new(1, 1, 1)
+t.Outline = true
+Drawings.PlayerCount = t
+end
+Drawings.PlayerCount.Text = "Players: " .. count
+Drawings.PlayerCount.Position = Vector2.new(20, 20)
+Drawings.PlayerCount.Visible = true
+elseif Drawings.PlayerCount then
+Drawings.PlayerCount.Visible = false
+end
+end
+
+local TabFly = CreateTab("Fly/Tele")
+
+local FlyFloat = CreateFloat("Fly", 20)
+local UpFloat = CreateFloat("Fly ▲", 62)
+local DownFloat = CreateFloat("Fly ▼", 104)
+local TeleFloat = CreateFloat("Tele Player", 146)
+local MarkFloat = CreateFloat("Tele Mark", 188)
+local SkyFloat = CreateFloat("Tele Sky", 230)
+local UnderFloat = CreateFloat("Under Plan", 272)
+InvisFloat = CreateFloat("Invisibility", 314)
+local TeleWallFloat = CreateFloat("Tele Wall", 356)
+local TeleWall2Float = CreateFloat("Tele Wall 2", 378)
+local LockNVFloat = CreateFloat("LockNV", 400)
+local TeleSky2Float = CreateFloat("TeleSky2", 420)
+local GhostFloat = CreateFloat("Ghost", 462)
+local TeleBack1Float = CreateFloat("TeleBack1", 504)
+local TeleBack2Float = CreateFloat("TeleBack2", 546)
+local SpeedTimeFloat = CreateFloat("Speed Time", 398)
+local FlyUpX2Float = CreateFloat("Fly X2", 440)
+UpFloat.Hold("Up")
+DownFloat.Hold("Down")
+
+local FlyBV, FlyBG = nil, nil
+local FlyVel = Vector3.zero
+
+local function DestroyFlyBodies()
+if FlyBV then pcall(function() FlyBV:Destroy() end) end
+if FlyBG then pcall(function() FlyBG:Destroy() end) end
+FlyBV, FlyBG = nil, nil
+FlyVel = Vector3.zero
+end
+
+local function EnsureFlyBodies(hrp)
+if FlyBV and FlyBG and FlyBV.Parent == hrp and FlyBG.Parent == hrp then return true end
+DestroyFlyBodies()
+local ok = pcall(function()
+FlyBV = Instance.new("BodyVelocity")
+FlyBV.Name = "HSFlyBV"
+FlyBV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+FlyBV.P = 1e4
+FlyBV.Velocity = Vector3.zero
+FlyBV.Parent = hrp
+FlyBG = Instance.new("BodyGyro")
+FlyBG.Name = "HSFlyBG"
+FlyBG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+FlyBG.P = 9e4
+FlyBG.D = 500
+FlyBG.CFrame = hrp.CFrame
+FlyBG.Parent = hrp
+end)
+if not ok then
+DestroyFlyBodies()
+return false
+end
+return true
+end
+
+local FlyToggle
+
+local function SetFly(on)
+if on and State.Under.Enabled then
+Notify("Fly", "Hãy tắt Under Plan trước khi bay", 5)
+FlyFloat.SetOn(false)
+if FlyToggle then FlyToggle.Set(false, false) end
+return
+end
+State.Memory.FlyEnabled = on and true or false
+FlyFloat.SetOn(State.Memory.FlyEnabled)
+if FlyToggle then FlyToggle.Set(State.Memory.FlyEnabled, false) end
+local hrp, hum = GetHRP()
+if on then
+local lift = math.max(State.Memory.FlyHeight, 0)
+if hrp and lift > 0 then
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = { LocalPlayer.Character }
+local res = Workspace:Raycast(hrp.Position, Vector3.new(0, lift + 4, 0), params)
+if res then lift = math.max(res.Distance - 4, 0) end
+hrp.CFrame = hrp.CFrame + Vector3.new(0, lift, 0)
+end
+else
+State.Memory.Up = false
+State.Memory.Down = false
+DestroyFlyBodies()
+if hrp then pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end) end
+if hum then hum.PlatformStand = false end
+end
+end
+
+local function UpdateFly(dt, hrp, hum)
+if not State.Memory.FlyEnabled then
+if FlyBV or FlyBG then DestroyFlyBodies() end
+return
+end
+if not hrp or not hum or hum.Health <= 0 then return end
+
+hum.PlatformStand = true
+local usedBodies = EnsureFlyBodies(hrp)
+
+local cam = Camera.CFrame
+local look = cam.LookVector
+local flatLook = Vector3.new(look.X, 0, look.Z)
+if flatLook.Magnitude < 0.05 then
+flatLook = Vector3.new(cam.UpVector.X, 0, cam.UpVector.Z)
+end
+if flatLook.Magnitude < 0.001 then
+flatLook = Vector3.new(0, 0, -1)
+else
+flatLook = flatLook.Unit
+end
+local flatRight = flatLook:Cross(Vector3.new(0, 1, 0))
+
+local move = hum.MoveDirection
+local fwd = move:Dot(flatLook)
+local rgt = move:Dot(flatRight)
+local dir = cam.LookVector * fwd + cam.RightVector * rgt
+
+local vert = 0
+if State.Memory.Up or UserInputService:IsKeyDown(Enum.KeyCode.Space) then vert = vert + 1 end
+if State.Memory.Down or UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vert = vert - 1 end
+dir = dir + Vector3.new(0, vert, 0)
+if dir.Magnitude > 1 then dir = dir.Unit end
+
+local target = dir * State.Memory.FlySpeed
+FlyVel = FlyVel:Lerp(target, 1 - math.exp(-dt * 10))
+
+if usedBodies then
+FlyBV.Velocity = FlyVel
+FlyBG.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + flatLook)
+else
+hrp.AssemblyLinearVelocity = FlyVel
+hrp.AssemblyAngularVelocity = Vector3.zero
+end
+end
+
+CreateHeader(TabFly, "FLY")
+FlyToggle = CreateToggle(TabFly, "Fly Normal", false, function(s) SetFly(s) end)
+CreateToggle(TabFly, "Hiện nút nổi Fly", false, function(s)
+FlyFloat.Show(s)
+UpFloat.Show(s)
+DownFloat.Show(s)
+end)
+CreateSlider(TabFly, "Nhấc lên khi bật Fly (0 = tắt)", 0, 300, 5, function(v) State.Memory.FlyHeight = v end)
+CreateSlider(TabFly, "Tốc độ Fly", 1, 500, 50, function(v) State.Memory.FlySpeed = v end)
+FlyFloat.OnTap(function() SetFly(not State.Memory.FlyEnabled) end)
+
+CreateHeader(TabFly, "TELE PLAYER")
+local TeleTarget = nil
+local DropdownBtn = CreateButton(TabFly, "Chọn Player")
+local dropFrame = Create("Frame", { Size = UDim2.new(1, 0, 0, 110), BackgroundColor3 = C.Item, BackgroundTransparency = 0.2, Visible = false }, TabFly)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, dropFrame)
+local dropScroll = Create("ScrollingFrame", {
+Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2,
+CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
+}, dropFrame)
+Create("UIListLayout", { Padding = UDim.new(0, 2) }, dropScroll)
+DropdownBtn.MouseButton1Click:Connect(function() dropFrame.Visible = not dropFrame.Visible end)
+
+local function refreshPlayers()
+if Unloaded then return end
+for _, v in ipairs(dropScroll:GetChildren()) do
+if v:IsA("TextButton") then v:Destroy() end
+end
+for _, p in ipairs(Players:GetPlayers()) do
+if p ~= LocalPlayer then
+local pBtn = Create("TextButton", {
+Size = UDim2.new(1, -4, 0, 28), BackgroundColor3 = C.Panel, Text = p.Name,
+TextColor3 = C.Text, Font = FONT_N, TextSize = 13, AutoButtonColor = false
+}, dropScroll)
+Create("UICorner", { CornerRadius = UDim.new(0, 5) }, pBtn)
+pBtn.MouseButton1Click:Connect(function()
+Click()
+TeleTarget = p
+DropdownBtn.Text = "Target: " .. p.Name
+dropFrame.Visible = false
+TeleFloat.Show(true)
+end)
+end
+end
+end
+refreshPlayers()
+Connections[#Connections + 1] = Players.PlayerAdded:Connect(refreshPlayers)
+Connections[#Connections + 1] = Players.PlayerRemoving:Connect(function(p)
+if TeleTarget == p then
+TeleTarget = nil
+DropdownBtn.Text = "Chọn Player"
+TeleFloat.Show(false)
+end
+task.defer(refreshPlayers)
+end)
+
+TeleFloat.OnTap(function()
+TeleFloat.Flash()
+local hrp = GetHRP()
+if TeleTarget and hrp and TeleTarget.Character and TeleTarget.Character:FindFirstChild("HumanoidRootPart") then
+hrp.CFrame = TeleTarget.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+else
+Notify("Tele Player", "Không tìm thấy mục tiêu", 5)
+end
+end)
+
+CreateHeader(TabFly, "TELE MARK")
+local MarkedPos = nil
+local MapGui = Create("Frame", {
+Size = UDim2.new(0, 360, 0, 270), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
+BackgroundColor3 = C.Panel, Visible = false, ZIndex = 10
+}, ScreenGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 10) }, MapGui)
+Create("UIStroke", { Color = C.Accent }, MapGui)
+Create("TextLabel", {
+Size = UDim2.new(1, -40, 0, 30), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
+Text = "Chạm để đánh dấu (vùng 1000 stud quanh bạn)", TextColor3 = C.Text, Font = FONT_N, TextSize = 12,
+TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 10
+}, MapGui)
+local MapClose = Create("TextButton", {
+Size = UDim2.new(0, 30, 0, 30), Position = UDim2.new(1, -30, 0, 0), Text = "X",
+TextColor3 = C.Accent, Font = FONT_B, TextSize = 14, BackgroundTransparency = 1, ZIndex = 11
+}, MapGui)
+MapClose.MouseButton1Click:Connect(function()
+Click()
+MapGui.Visible = false
+end)
+local MapArea = Create("TextButton", {
+Size = UDim2.new(1, -20, 1, -40), Position = UDim2.new(0, 10, 0, 32),
+BackgroundColor3 = Color3.fromRGB(30, 30, 30), Text = "", AutoButtonColor = false, ZIndex = 10
+}, MapGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 6) }, MapArea)
+MapArea.InputBegan:Connect(function(input)
+if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+local hrp = GetHRP()
+if not hrp then return end
+Click()
+local relX = (input.Position.X - MapArea.AbsolutePosition.X) / math.max(MapArea.AbsoluteSize.X, 1)
+local relY = (input.Position.Y - MapArea.AbsolutePosition.Y) / math.max(MapArea.AbsoluteSize.Y, 1)
+local o = hrp.Position
+MarkedPos = Vector3.new(o.X + (relX - 0.5) * 1000, o.Y, o.Z + (relY - 0.5) * 1000)
+Notify("Tele Mark", "Đã đánh dấu vị trí!", 5)
+MapGui.Visible = false
+MarkFloat.Show(true)
+end)
+CreateButton(TabFly, "Mở Bản Đồ (Tele Mark)", function() MapGui.Visible = true end)
+
+MarkFloat.OnTap(function()
+MarkFloat.Flash()
+local hrp = GetHRP()
+if MarkedPos and hrp then
+hrp.CFrame = CFrame.new(MarkedPos + Vector3.new(0, 3, 0))
+end
+end)
+
+CreateHeader(TabFly, "TELE SKY")
+CreateSlider(TabFly, "Độ cao Tele Sky", 1, 1000, 100, function(v) State.Memory.TeleSkyHeight = v end)
+CreateToggle(TabFly, "Bật Tele Sky", false, function(s) SkyFloat.Show(s) end)
+
+SkyFloat.OnTap(function()
+local hrp = GetHRP()
+if not hrp then return end
+State.Memory.InSky = not State.Memory.InSky
+SkyFloat.SetOn(State.Memory.InSky)
+if State.Memory.InSky then
+State.Memory.OldPos = hrp.Position
+hrp.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y + State.Memory.TeleSkyHeight, hrp.Position.Z)
+else
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = { LocalPlayer.Character }
+local res = Workspace:Raycast(hrp.Position, Vector3.new(0, -3000, 0), params)
+local dest = (res and (res.Position + Vector3.new(0, 3, 0))) or State.Memory.OldPos
+if dest then hrp.CFrame = CFrame.new(dest) end
+end
+end)
+
+local TabChams = CreateTab("Chams")
+
+local function RemoveCham(plr)
+local h = ChamObjs[plr]
+if h then pcall(function() h:Destroy() end) end
+ChamObjs[plr] = nil
+end
+
+local function ClearChams()
+for plr in pairs(ChamObjs) do RemoveCham(plr) end
+end
+
+local function UpdateChams()
+local mode = State.Chams.Mode
+if mode == "None" then
+if next(ChamObjs) then ClearChams() end
+return
+end
+local col
+if mode == "Red" then
+col = Color3.fromRGB(255, 0, 0)
+elseif mode == "Blue" then
+col = Color3.fromRGB(0, 80, 255)
+else
+col = Color3.fromHSV(tick() % 1, 1, 1)
+end
+for _, plr in ipairs(Players:GetPlayers()) do
+if plr ~= LocalPlayer then
+local char = plr.Character
+local h = ChamObjs[plr]
+if char and char:FindFirstChild("HumanoidRootPart") then
+if not h or not h.Parent then
+h = Instance.new("Highlight")
+h.Name = "HSCham"
+h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+h.FillTransparency = 0.4
+h.OutlineColor = Color3.new(1, 1, 1)
+h.OutlineTransparency = 0
+h.Parent = Root
+ChamObjs[plr] = h
+end
+if h.Adornee ~= char then h.Adornee = char end
+h.FillColor = col
+elseif h then
+RemoveCham(plr)
+end
+end
+end
+end
+
+Connections[#Connections + 1] = Players.PlayerRemoving:Connect(function(p)
+RemoveESP(p)
+RemoveCham(p)
+end)
+
+local ChamToggles = {}
+local function ChamSwitch(name)
+return function(s)
+if s then
+for n, t in pairs(ChamToggles) do
+if n ~= name then t.Set(false, false) end
+end
+State.Chams.Mode = name
+elseif State.Chams.Mode == name then
+State.Chams.Mode = "None"
+end
+end
+end
+ChamToggles.Red = CreateToggle(TabChams, "Red Chams", false, ChamSwitch("Red"))
+ChamToggles.Blue = CreateToggle(TabChams, "Blue Chams", false, ChamSwitch("Blue"))
+ChamToggles.Rainbow = CreateToggle(TabChams, "Rainbow Chams", false, ChamSwitch("Rainbow"))
+
+local SpinPlayer = { Enabled = false, Speed = 5, BaseRotation = nil, Angle = 0 }
+local function SetSpinPlayer(on)
+    local hrp = GetHRP()
+    if on then
+        if not hrp then
+            Notify("-180° Player", "Không tìm thấy nhân vật", 3)
+            SpinPlayer.Enabled = false
+            return
+        end
+        SpinPlayer.BaseRotation = hrp.CFrame.Rotation
+        local _, yaw = hrp.CFrame:ToEulerAnglesYXZ()
+        SpinPlayer.Angle = yaw
+        SpinPlayer.Enabled = true
+        Notify("-180° Player", "Đã bật xoay nhân vật", 3)
+    else
+        SpinPlayer.Enabled = false
+        if hrp and SpinPlayer.BaseRotation then
+            pcall(function()
+                hrp.CFrame = CFrame.new(hrp.Position) * SpinPlayer.BaseRotation
+            end)
+        end
+        SpinPlayer.BaseRotation = nil
+        Notify("-180° Player", "Đã tắt; khôi phục hướng ban đầu", 3)
+    end
+end
+
+local TabLoc = CreateTab("Location")
+CreateHeader(TabLoc, "INVISIBILITY")
+InvisToggle = CreateToggle(TabLoc, "Invisibility · Ẩn nhân vật (cục bộ)", false, function(on)
+Invis.Set(on)
+end)
+CreateToggle(TabLoc, "Hiện nút nổi Invisibility", false, function(on)
+if InvisFloat then InvisFloat.Show(on) end
+end)
+CreateLabel(TabLoc, "Chỉ ẩn trên màn hình của bạn; không làm nhân vật vô hình với người chơi khác trên máy chủ.")
+CreateHeader(TabLoc, "-180° PLAYER · XOAY NHÂN VẬT")
+CreateLabel(TabLoc, "Xoay liên tục quanh trục đứng. Tắt để khôi phục hướng lúc bật.", C.Sub)
+CreateSlider(TabLoc, "Tốc độ xoay (1–20)", 1, 20, 5, function(v)
+    SpinPlayer.Speed = math.clamp(v, 1, 20)
+end)
+CreateToggle(TabLoc, "Bật -180° Player", false, function(on)
+    SetSpinPlayer(on)
+end)
+InvisFloat.OnTap(function()
+Invis.Set(not Invis.Enabled)
+end)
+
+local TabMem = CreateTab("Memory")
+CreateHeader(TabMem, "DI CHUYỂN")
+
+-- TeleBack: save a location, then return to it with a separate floating button.
+local TeleBackSavedCFrame = nil
+local function SaveTeleBack()
+    local hrp = GetHRP()
+    if not hrp then Notify("TeleBack1", "Không tìm thấy nhân vật", 3); return end
+    TeleBackSavedCFrame = hrp.CFrame
+    Notify("TeleBack1", "Đã lưu vị trí hiện tại", 3)
+    TeleBack1Float.Flash()
+end
+local function ReturnTeleBack()
+    local hrp = GetHRP()
+    if not hrp then Notify("TeleBack2", "Không tìm thấy nhân vật", 3); return end
+    if not TeleBackSavedCFrame then Notify("TeleBack2", "Hãy lưu vị trí bằng TeleBack1 trước", 4); return end
+    hrp.CFrame = TeleBackSavedCFrame
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    Notify("TeleBack2", "Đã trở về vị trí đã lưu", 3)
+    TeleBack2Float.Flash()
+end
+
+-- Ghost clone mode: client-side clone is controllable locally; server-side invisibility is not guaranteed.
+local GhostEnabled = false
+local GhostRealCharacter, GhostClone, GhostRoot, GhostHumanoid
+local GhostRealRootCFrame, GhostRealAnchored, GhostRealAutoRotate
+local GhostCameraSubject, GhostCameraType
+local GhostControls
+local GhostMoveConnection
+local GhostSavedParts = {}
+local GhostSavedDecals = {}
+
+local function GhostRestoreRealVisuals()
+    for inst, saved in pairs(GhostSavedParts) do
+        if inst and inst.Parent then
+            pcall(function()
+                inst.LocalTransparencyModifier = saved.LocalTransparencyModifier or 0
+                inst.Transparency = saved.Transparency
+            end)
+        end
+    end
+    for inst, transparency in pairs(GhostSavedDecals) do
+        if inst and inst.Parent then pcall(function() inst.Transparency = transparency end) end
+    end
+    ClearTableCompat(GhostSavedParts)
+    ClearTableCompat(GhostSavedDecals)
+end
+
+local function SetGhost(on)
+    on = on and true or false
+    if on == GhostEnabled then return end
+    if on then
+        local real = LocalPlayer.Character
+        local realRoot = real and real:FindFirstChild("HumanoidRootPart")
+        local realHum = real and real:FindFirstChildOfClass("Humanoid")
+        if not real or not realRoot or not realHum then
+            Notify("Ghost", "Không tìm thấy nhân vật hợp lệ", 4)
+            GhostFloat.SetOn(false)
+            return
+        end
+        local oldArchivable = real.Archivable
+        local ok, clone = pcall(function()
+            real.Archivable = true
+            local copy = real:Clone()
+            real.Archivable = oldArchivable
+            return copy
+        end)
+        real.Archivable = oldArchivable
+        if not ok or not clone then
+            Notify("Ghost", "Không thể tạo bản sao nhân vật", 5)
+            GhostFloat.SetOn(false)
+            return
+        end
+        clone.Name = "HyperSun_GhostClone"
+        for _, d in ipairs(clone:GetDescendants()) do
+            if d:IsA("Script") or d:IsA("LocalScript") then
+                pcall(function() d:Destroy() end)
+            elseif d:IsA("Tool") then
+                pcall(function() d:Destroy() end)
+            elseif d:IsA("BasePart") then
+                d.Anchored = false
+                d.CanCollide = false
+            end
+        end
+        local cloneRoot = clone:FindFirstChild("HumanoidRootPart")
+        local cloneHum = clone:FindFirstChildOfClass("Humanoid")
+        if not cloneRoot or not cloneHum then
+            clone:Destroy()
+            Notify("Ghost", "Bản sao thiếu Humanoid hoặc HumanoidRootPart", 4)
+            GhostFloat.SetOn(false)
+            return
+        end
+        GhostRealCharacter = real
+        GhostClone = clone
+        GhostRoot = realRoot
+        GhostHumanoid = realHum
+        GhostRealRootCFrame = realRoot.CFrame
+        GhostRealAnchored = realRoot.Anchored
+        GhostRealAutoRotate = realHum.AutoRotate
+        local camera = Workspace.CurrentCamera
+        GhostCameraSubject = camera and camera.CameraSubject
+        GhostCameraType = camera and camera.CameraType
+        for _, inst in ipairs(real:GetDescendants()) do
+            if inst:IsA("BasePart") then
+                GhostSavedParts[inst] = {Transparency = inst.Transparency, LocalTransparencyModifier = inst.LocalTransparencyModifier}
+                inst.LocalTransparencyModifier = 1
+            elseif inst:IsA("Decal") or inst:IsA("Texture") then
+                GhostSavedDecals[inst] = inst.Transparency
+                inst.Transparency = 1
+            end
+        end
+        realRoot.Anchored = true
+        realHum.AutoRotate = false
+        clone:PivotTo(realRoot.CFrame)
+        clone.Parent = Workspace
+        GhostClone = clone
+        GhostRoot = cloneRoot
+        GhostHumanoid = cloneHum
+        cloneHum.WalkSpeed = realHum.WalkSpeed
+        cloneHum.JumpPower = 0
+        cloneHum.JumpHeight = 0
+        cloneHum.AutoRotate = true
+        pcall(function() cloneHum:UnequipTools() end)
+        GhostEnabled = true
+        -- Read Roblox's existing touch joystick/keyboard movement vector and drive only the clone.
+        pcall(function()
+            local ps = LocalPlayer:WaitForChild("PlayerScripts", 3)
+            local pm = ps and require(ps:WaitForChild("PlayerModule", 3))
+            GhostControls = pm and pm:GetControls()
+        end)
+        GhostMoveConnection = RunService.RenderStepped:Connect(function()
+            if not GhostEnabled or not GhostClone or not GhostClone.Parent or not GhostHumanoid then return end
+            local move = Vector3.zero
+            pcall(function()
+                if GhostControls then move = GhostControls:GetMoveVector() end
+            end)
+            local cameraNow = Workspace.CurrentCamera
+            if cameraNow then
+                local look = cameraNow.CFrame.LookVector
+                local right = cameraNow.CFrame.RightVector
+                local forwardFlat = Vector3.new(look.X, 0, look.Z)
+                local rightFlat = Vector3.new(right.X, 0, right.Z)
+                if forwardFlat.Magnitude > 0 then forwardFlat = forwardFlat.Unit end
+                if rightFlat.Magnitude > 0 then rightFlat = rightFlat.Unit end
+                local worldMove = rightFlat * move.X + forwardFlat * -move.Z
+                GhostHumanoid:Move(worldMove, false)
+            end
+            GhostHumanoid.Jump = false
+        end)
+        if camera then
+            camera.CameraType = Enum.CameraType.Custom
+            camera.CameraSubject = cloneHum
+        end
+        GhostFloat.SetOn(true)
+        Notify("Ghost", "Ghost phân thân đã bật; chỉ di chuyển bản sao ở phía client", 5)
+    else
+        GhostEnabled = false
+        if GhostMoveConnection then pcall(function() GhostMoveConnection:Disconnect() end); GhostMoveConnection = nil end
+        local clonePos = GhostRoot and GhostRoot.Parent and GhostRoot.CFrame or GhostRealRootCFrame
+        if GhostRealCharacter and GhostRealCharacter.Parent then
+            local realRoot = GhostRealCharacter:FindFirstChild("HumanoidRootPart")
+            local realHum = GhostRealCharacter:FindFirstChildOfClass("Humanoid")
+            if realRoot then
+                realRoot.Anchored = GhostRealAnchored or false
+                if clonePos then realRoot.CFrame = clonePos end
+                pcall(function() realRoot.AssemblyLinearVelocity = Vector3.zero end)
+            end
+            if realHum and GhostRealAutoRotate ~= nil then realHum.AutoRotate = GhostRealAutoRotate end
+        end
+        GhostRestoreRealVisuals()
+        local camera = Workspace.CurrentCamera
+        if camera then
+            camera.CameraType = GhostCameraType or Enum.CameraType.Custom
+            local hum = GhostRealCharacter and GhostRealCharacter:FindFirstChildOfClass("Humanoid")
+            camera.CameraSubject = hum or GhostCameraSubject
+        end
+        if GhostClone then pcall(function() GhostClone:Destroy() end) end
+        GhostRealCharacter, GhostClone, GhostRoot, GhostHumanoid = nil, nil, nil, nil
+        GhostControls, GhostRealRootCFrame, GhostRealAnchored, GhostRealAutoRotate = nil, nil, nil, nil
+        GhostCameraSubject, GhostCameraType = nil, nil
+        GhostFloat.SetOn(false)
+        Notify("Ghost", "Ghost đã tắt; đã khôi phục nhân vật thật", 4)
+    end
+end
+GhostFloat.OnTap(function() SetGhost(not GhostEnabled) end)
+TeleBack1Float.OnTap(SaveTeleBack)
+TeleBack2Float.OnTap(ReturnTeleBack)
+CreateToggle(TabMem, "Ghost · Phân thân điều khiển (Beta)", false, SetGhost)
+CreateLabel(TabMem, "Bản sao được điều khiển cục bộ; không đảm bảo ẩn nhân vật thật khỏi máy chủ hoặc người chơi khác.", C.Sub)
+CreateToggle(TabMem, "Hiện nút nổi Ghost", false, function(on) GhostFloat.Show(on) end)
+CreateToggle(TabMem, "Hiện nút nổi TeleBack1 (lưu vị trí)", false, function(on) TeleBack1Float.Show(on) end)
+CreateToggle(TabMem, "Hiện nút nổi TeleBack2 (quay lại)", false, function(on) TeleBack2Float.Show(on) end)
+CreateButton(TabMem, "TeleBack1 · Lưu vị trí", SaveTeleBack)
+CreateButton(TabMem, "TeleBack2 · Quay về vị trí đã lưu", ReturnTeleBack)
+
+
+-- Fast Talk: reduce local ProximityPrompt hold time; server-side cooldowns remain controlled by the game.
+local FastTalkSaved = {}
+local FastTalkAddedConn = nil
+local function ApplyFastTalkPrompt(prompt)
+    if not prompt or not prompt:IsA("ProximityPrompt") then return end
+    if FastTalkSaved[prompt] == nil then
+        FastTalkSaved[prompt] = { HoldDuration = prompt.HoldDuration, RequiresLineOfSight = prompt.RequiresLineOfSight }
+    end
+    pcall(function()
+        prompt.HoldDuration = 0
+        prompt.RequiresLineOfSight = false
+    end)
+end
+local function SetFastTalk(on)
+    State.Memory.FastTalk = on and true or false
+    if State.Memory.FastTalk then
+        for _, inst in ipairs(Workspace:GetDescendants()) do
+            if inst:IsA("ProximityPrompt") then ApplyFastTalkPrompt(inst) end
+        end
+        if FastTalkAddedConn then FastTalkAddedConn:Disconnect() end
+        FastTalkAddedConn = Workspace.DescendantAdded:Connect(function(inst)
+            if State.Memory.FastTalk and inst:IsA("ProximityPrompt") then
+                task.defer(function() ApplyFastTalkPrompt(inst) end)
+            end
+        end)
+        Notify("Fast Talk", "Đã giảm thời gian giữ prompt ở phía client", 4)
+    else
+        if FastTalkAddedConn then FastTalkAddedConn:Disconnect(); FastTalkAddedConn = nil end
+        for prompt, saved in pairs(FastTalkSaved) do
+            if prompt and prompt.Parent then
+                pcall(function()
+                    prompt.HoldDuration = saved.HoldDuration
+                    prompt.RequiresLineOfSight = saved.RequiresLineOfSight
+                end)
+            end
+        end
+        ClearTableCompat(FastTalkSaved)
+        Notify("Fast Talk", "Đã khôi phục thiết lập prompt", 3)
+    end
+end
+CreateToggle(TabMem, "Fast Talk · Tương tác nhanh", false, SetFastTalk)
+CreateLabel(TabMem, "Chỉ giảm thời gian giữ ProximityPrompt trên client; cooldown do máy chủ game quản lý vẫn có thể áp dụng.", C.Sub)
+
+-- Fast Attack (Beta): repeatedly activates the currently equipped Tool locally and speeds up local attack animations.
+-- The game server may still enforce its own attack cooldown and damage rules.
+local FastAttackAnimSpeeds = {}
+local FastAttackAnimatorConn = nil
+local function BoostAttackAnimation(track)
+    if not track then return end
+    if FastAttackAnimSpeeds[track] == nil then
+        local originalSpeed = 1
+        pcall(function() originalSpeed = track.Speed end)
+        FastAttackAnimSpeeds[track] = originalSpeed
+    end
+    pcall(function() track:AdjustSpeed(10) end) -- 10x local animation speed
+end
+local function SetFastAttack(on)
+    State.Memory.FastAttack = on and true or false
+    if State.Memory.FastAttack then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local animator = hum and (hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator", 2))
+        if animator then
+            if FastAttackAnimatorConn then FastAttackAnimatorConn:Disconnect() end
+            FastAttackAnimatorConn = animator.AnimationPlayed:Connect(function(track)
+                if State.Memory.FastAttack then BoostAttackAnimation(track) end
+            end)
+            pcall(function()
+                for _, track in ipairs(animator:GetPlayingAnimationTracks()) do BoostAttackAnimation(track) end
+            end)
+        end
+        task.spawn(function()
+            while State.Memory.FastAttack and not Unloaded do
+                local currentChar = LocalPlayer.Character
+                local tool = currentChar and currentChar:FindFirstChildOfClass("Tool")
+                if tool then
+                    pcall(function() tool:Activate() end)
+                end
+                task.wait(0.1)
+            end
+        end)
+        Notify("Fast Attack (Beta)", "Đã bật nhịp kích hoạt 0,1 giây ở client", 4)
+    else
+        if FastAttackAnimatorConn then FastAttackAnimatorConn:Disconnect(); FastAttackAnimatorConn = nil end
+        for track, speed in pairs(FastAttackAnimSpeeds) do
+            pcall(function()
+                if track and track.IsPlaying then track:AdjustSpeed(speed) end
+            end)
+        end
+        ClearTableCompat(FastAttackAnimSpeeds)
+        Notify("Fast Attack (Beta)", "Đã tắt", 3)
+    end
+end
+CreateToggle(TabMem, "Fast Attack (Beta) · 0,1s", false, SetFastAttack)
+CreateLabel(TabMem, "Thử kích hoạt Tool mỗi 0,1 giây và tăng tốc animation cục bộ. Máy chủ game vẫn có thể giới hạn tốc độ đánh/sát thương.", C.Sub)
+
+-- TeleSky2: hover at a fixed altitude and move horizontally using the normal movement controls.
+local SetLockNV
+local TeleSky2Toggle
+local function SetTeleSky2(on)
+    local hrp, hum = GetHRP()
+    if on then
+        if State.Memory.TeleSky2 then return end
+        if not hrp or not hum or hum.Health <= 0 then
+            Notify("TeleSky2", "Không tìm thấy nhân vật", 3)
+            TeleSky2Float.SetOn(false)
+            if TeleSky2Toggle then TeleSky2Toggle.Set(false, false) end
+            return
+        end
+        if State.Memory.LockNV then SetLockNV(false) end
+        local startPos = hrp.Position
+        local groundPos = nil
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = {LocalPlayer.Character}
+        local hit = Workspace:Raycast(startPos, Vector3.new(0, -3000, 0), params)
+        if hit then groundPos = hit.Position + Vector3.new(0, 3, 0) end
+        local targetY = math.max(startPos.Y + 90, (groundPos and groundPos.Y + 90) or startPos.Y + 90)
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "HyperSunTeleSky2Velocity"
+        bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
+        bv.P = 25000
+        bv.Velocity = Vector3.zero
+        bv.Parent = hrp
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "HyperSunTeleSky2Gyro"
+        bg.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
+        bg.P = 18000
+        bg.D = 700
+        bg.CFrame = hrp.CFrame
+        bg.Parent = hrp
+        State.Memory.TeleSky2Data = {Root = hrp, Humanoid = hum, StartPos = startPos, GroundPos = groundPos, TargetY = targetY, Velocity = bv, Gyro = bg, AutoRotate = hum.AutoRotate}
+        State.Memory.TeleSky2 = true
+        hum.AutoRotate = false
+        hrp.CFrame = CFrame.new(startPos.X, targetY, startPos.Z)
+        TeleSky2Float.SetOn(true)
+        if TeleSky2Toggle then TeleSky2Toggle.Set(true, false) end
+        Notify("TeleSky2", "Đã bật chế độ lơ lửng; dùng cần di chuyển để tiến/lùi", 4)
+    else
+        if not State.Memory.TeleSky2 then return end
+        local data = State.Memory.TeleSky2Data
+        State.Memory.TeleSky2 = false
+        if data then
+            pcall(function() if data.Velocity then data.Velocity:Destroy() end end)
+            pcall(function() if data.Gyro then data.Gyro:Destroy() end end)
+            if data.Humanoid and data.Humanoid.Parent then pcall(function() data.Humanoid.AutoRotate = data.AutoRotate end) end
+            local root = data.Root
+            if root and root.Parent then
+                local params = RaycastParams.new()
+                params.FilterType = Enum.RaycastFilterType.Exclude
+                params.FilterDescendantsInstances = {LocalPlayer.Character}
+                local hit = Workspace:Raycast(root.Position, Vector3.new(0, -5000, 0), params)
+                local dest = (hit and hit.Position + Vector3.new(0, 3, 0)) or data.GroundPos or data.StartPos
+                if dest then root.CFrame = CFrame.new(dest) end
+                root.AssemblyLinearVelocity = Vector3.zero
+            end
+        end
+        State.Memory.TeleSky2Data = nil
+        TeleSky2Float.SetOn(false)
+        if TeleSky2Toggle then TeleSky2Toggle.Set(false, false) end
+        Notify("TeleSky2", "Đã tắt và đưa nhân vật xuống gần mặt đất", 3)
+    end
+end
+TeleSky2Toggle = CreateToggle(TabMem, "TeleSky2 · Lơ lửng trên trời", false, SetTeleSky2)
+CreateToggle(TabMem, "TeleSky2 (hiện nút nổi)", false, function(on) TeleSky2Float.Show(on) end)
+TeleSky2Float.OnTap(function() SetTeleSky2(not State.Memory.TeleSky2) end)
+Connections[#Connections + 1] = RunService.Heartbeat:Connect(function()
+    if not State.Memory.TeleSky2 then return end
+    local data = State.Memory.TeleSky2Data
+    if not data or not data.Root or not data.Root.Parent or not data.Humanoid or data.Humanoid.Health <= 0 then
+        SetTeleSky2(false)
+        return
+    end
+    local cam = Workspace.CurrentCamera
+    local move = data.Humanoid.MoveDirection
+    local horizontal = Vector3.zero
+    if cam and move.Magnitude > 0.01 then
+        horizontal = Vector3.new(move.X, 0, move.Z).Unit * 48
+    end
+    local vertical = math.clamp((data.TargetY - data.Root.Position.Y) * 4, -65, 65)
+    data.Velocity.Velocity = Vector3.new(horizontal.X, vertical, horizontal.Z)
+    if cam then
+        local look = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z)
+        if look.Magnitude > 0.01 then data.Gyro.CFrame = CFrame.lookAt(data.Root.Position, data.Root.Position + look.Unit) end
+    end
+end)
+
+local TeleWallSaved = nil
+local function ActivateTeleWall()
+if State.Memory.TeleWallBusy then return end
+local cam = Workspace.CurrentCamera
+if not cam then Notify("Tele Wall", "Không tìm thấy camera", 4); return end
+State.Memory.TeleWallBusy = true
+TeleWallFloat.Flash()
+TeleWallSaved = { Type = cam.CameraType, Subject = cam.CameraSubject, CFrame = cam.CFrame, Focus = cam.Focus }
+cam.CameraType = Enum.CameraType.Scriptable
+cam.CFrame = TeleWallSaved.CFrame + TeleWallSaved.CFrame.LookVector * 16
+cam.Focus = TeleWallSaved.Focus + TeleWallSaved.CFrame.LookVector * 16
+Notify("Tele Wall", "Đã dịch chuyển camera", 4)
+task.delay(7, function()
+if TeleWallSaved then
+local current = Workspace.CurrentCamera
+if current then
+current.CameraType = TeleWallSaved.Type
+current.CameraSubject = TeleWallSaved.Subject
+current.CFrame = TeleWallSaved.CFrame
+current.Focus = TeleWallSaved.Focus
+end
+TeleWallSaved = nil
+end
+State.Memory.TeleWallBusy = false
+Notify("Tele Wall", "Camera đã trở về vị trí ban đầu", 3)
+end)
+end
+TeleWallFloat.OnTap(ActivateTeleWall)
+CreateToggle(TabMem, "Tele Wall (hiện nút nổi camera)", false, function(on)
+TeleWallFloat.Show(on)
+end)
+
+-- Tele Wall 2: dịch chuyển nhân vật theo hướng nhìn; camera Roblox sẽ theo nhân vật.
+local function ActivateTeleWall2()
+local hrp, hum = GetHRP()
+if not hrp or not hum or hum.Health <= 0 then
+Notify("Tele Wall 2", "Không tìm thấy nhân vật đang hoạt động", 3)
+return
+end
+local direction = hrp.CFrame.LookVector
+local target = hrp.Position + direction * 16
+local savedVelocity = hrp.AssemblyLinearVelocity
+local ok = pcall(function()
+hrp.CFrame = CFrame.new(target, target + direction)
+hrp.AssemblyLinearVelocity = Vector3.zero
+end)
+if ok then
+TeleWall2Float.Flash()
+Notify("Tele Wall 2", "Đã thử dịch chuyển khoảng 5 m theo hướng nhìn", 3)
+else
+Notify("Tele Wall 2", "Không thể dịch chuyển trong môi trường này", 3)
+end
+end
+TeleWall2Float.OnTap(ActivateTeleWall2)
+CreateToggle(TabMem, "Tele Wall 2 (hiện nút nổi)", false, function(on)
+TeleWall2Float.Show(on)
+end)
+
+-- LockNV: giữ root tại chỗ, kể cả khi đang ở trên không; khôi phục trạng thái Anchored khi tắt.
+local LockNVToggle
+SetLockNV = function(on)
+local hrp, hum = GetHRP()
+if on then
+if State.Memory.LockNV then return end
+if not hrp or not hum or hum.Health <= 0 then
+Notify("LockNV", "Không tìm thấy nhân vật", 3)
+LockNVFloat.SetOn(false)
+return
+end
+State.Memory.LockNVData = {
+Root = hrp, CFrame = hrp.CFrame, Anchored = hrp.Anchored,
+LinearVelocity = hrp.AssemblyLinearVelocity, AngularVelocity = hrp.AssemblyAngularVelocity,
+AutoRotate = hum.AutoRotate, Humanoid = hum
+}
+State.Memory.LockNV = true
+pcall(function()
+hum.AutoRotate = false
+hrp.AssemblyLinearVelocity = Vector3.zero
+hrp.AssemblyAngularVelocity = Vector3.zero
+hrp.Anchored = true
+end)
+else
+if not State.Memory.LockNV then return end
+local data = State.Memory.LockNVData
+State.Memory.LockNV = false
+if data and data.Root and data.Root.Parent then
+pcall(function()
+data.Root.CFrame = data.CFrame
+ data.Root.Anchored = data.Anchored
+ data.Root.AssemblyLinearVelocity = data.LinearVelocity or Vector3.zero
+ data.Root.AssemblyAngularVelocity = data.AngularVelocity or Vector3.zero
+end)
+end
+if data and data.Humanoid and data.Humanoid.Parent then
+pcall(function() data.Humanoid.AutoRotate = data.AutoRotate end)
+end
+State.Memory.LockNVData = nil
+end
+LockNVFloat.SetOn(State.Memory.LockNV)
+if LockNVToggle then LockNVToggle.Set(State.Memory.LockNV, false) end
+Notify("LockNV", State.Memory.LockNV and "Đã khóa vị trí hiện tại" or "Đã khôi phục trạng thái", 3)
+end
+LockNVToggle = CreateToggle(TabMem, "LockNV · Đứng yên trên không", false, SetLockNV)
+CreateToggle(TabMem, "LockNV (hiện nút nổi)", false, function(on)
+LockNVFloat.Show(on)
+end)
+LockNVFloat.OnTap(function() SetLockNV(not State.Memory.LockNV) end)
+
+local SpeedTimeSaved = 16
+local function SetSpeedTime(on)
+State.Memory.SpeedTime = on
+SpeedTimeFloat.SetOn(on)
+local _, hum = GetHRP()
+if on then
+if hum then SpeedTimeSaved = hum.WalkSpeed; hum.WalkSpeed = 40 end
+Notify("Speed Time", "Đã bật tốc độ di chuyển tăng cường", 4)
+else
+if hum then hum.WalkSpeed = State.Player.SpeedOn and State.Player.Speed or SpeedTimeSaved end
+Notify("Speed Time", "Đã khôi phục tốc độ di chuyển", 3)
+end
+end
+SpeedTimeFloat.OnTap(function() SetSpeedTime(not State.Memory.SpeedTime) end)
+CreateToggle(TabMem, "Speed Time (hiện nút nổi)", false, function(on)
+SpeedTimeFloat.Show(on)
+end)
+
+local FlyUpX2Toggle
+local function SetFlyUpX2(on)
+if on and (State.Memory.FlyEnabled or State.Under.Enabled) then
+Notify("Fly X2", "Hãy tắt Fly và Under Plan trước", 4)
+State.Memory.FlyUpX2 = false
+FlyUpX2Float.SetOn(false)
+if FlyUpX2Toggle then FlyUpX2Toggle.Set(false, false) end
+return
+end
+State.Memory.FlyUpX2 = on and true or false
+FlyUpX2Float.SetOn(State.Memory.FlyUpX2)
+if FlyUpX2Toggle then FlyUpX2Toggle.Set(State.Memory.FlyUpX2, false) end
+Notify("Fly X2", State.Memory.FlyUpX2 and "Đã bật chuyển động lên/xuống mượt" or "Đã tắt Fly X2", 3)
+end
+FlyUpX2Toggle = CreateToggle(TabMem, "Fly UpX2", false, SetFlyUpX2)
+CreateToggle(TabMem, "Hiện nút nổi Fly X2", false, function(on) FlyUpX2Float.Show(on) end)
+FlyUpX2Float.OnTap(function() SetFlyUpX2(not State.Memory.FlyUpX2) end)
+
+CreateSlider(TabMem, "WalkSpeed", 1, 300, 16, function(v) State.Player.Speed = v end)
+CreateToggle(TabMem, "Bật WalkSpeed", false, function(s)
+local _, hum = GetHRP()
+if s then
+if hum then State.Player.DefSpeed = hum.WalkSpeed end
+State.Player.SpeedOn = true
+else
+State.Player.SpeedOn = false
+if hum then hum.WalkSpeed = State.Player.DefSpeed end
+end
+end)
+CreateSlider(TabMem, "JumpPower", 1, 500, 50, function(v) State.Player.Jump = v end)
+CreateToggle(TabMem, "Bật JumpPower", false, function(s)
+local _, hum = GetHRP()
+if s then
+if hum then pcall(function() State.Player.DefJump = hum.JumpPower end) end
+State.Player.JumpOn = true
+else
+State.Player.JumpOn = false
+if hum then pcall(function() hum.JumpPower = State.Player.DefJump end) end
+end
+end)
+CreateToggle(TabMem, "Infinite Jump", false, function(s) State.Player.InfJump = s end)
+CreateToggle(TabMem, "Noclip", false, function(s) State.Player.Noclip = s end)
+
+local function IsCharacterPart(part)
+local cur = part.Parent
+while cur and cur ~= Workspace do
+if cur:IsA("Model") and cur:FindFirstChildOfClass("Humanoid") then return true end
+cur = cur.Parent
+end
+return false
+end
+
+local function HidePart(part)
+if UnderHidden[part] then return end
+if not part:IsA("BasePart") then return end
+if IsCharacterPart(part) then return end
+UnderHidden[part] = true
+pcall(function() part.LocalTransparencyModifier = 1 end)
+end
+
+local function HideAllTerrainParts()
+task.spawn(function()
+local n = 0
+for _, d in ipairs(Workspace:GetDescendants()) do
+if not State.Under.Enabled or not State.Under.Hide or Unloaded then return end
+HidePart(d)
+n = n + 1
+if n % 400 == 0 then task.wait() end
+end
+end)
+end
+
+local function RestoreHidden()
+for part in pairs(UnderHidden) do
+if part and part.Parent then
+pcall(function() part.LocalTransparencyModifier = 0 end)
+end
+end
+ClearTableCompat(UnderHidden)
+end
+
+Connections[#Connections + 1] = Workspace.DescendantAdded:Connect(function(d)
+if State.Under.Enabled and State.Under.Hide and not Unloaded then
+task.defer(HidePart, d)
+end
+end)
+
+local function FixCharacters()
+for _, plr in ipairs(Players:GetPlayers()) do
+local char = plr.Character
+if char then
+for _, p in ipairs(char:GetDescendants()) do
+if p:IsA("BasePart") and UnderHidden[p] then
+UnderHidden[p] = nil
+pcall(function() p.LocalTransparencyModifier = 0 end)
+end
+end
+end
+end
+end
+
+local function SetUnder(on)
+local U = State.Under
+if on == U.Enabled then return end
+U.RunToken = U.RunToken + 1
+local runToken = U.RunToken
+local hrp, hum = GetHRP()
+if on then
+if not hrp or not hum then
+Notify("Under Plan", "Chưa có nhân vật", 5)
+UnderFloat.SetOn(false)
+return
+end
+if State.Memory.FlyEnabled then SetFly(false) end
+pcall(function() Invis.Set(true) end)
+Notify("Under Plan+Invisibility", "Đang bật Under và tàng hình cục bộ", 3)
+if Unloaded then return end
+hrp, hum = GetHRP()
+if not hrp or not hum then
+U.Enabled = false
+UnderFloat.SetOn(false)
+return
+end
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = { LocalPlayer.Character }
+params.IgnoreWater = true
+local res = Workspace:Raycast(hrp.Position, Vector3.new(0, -500, 0), params)
+U.OverPos = hrp.Position
+U.GroundY = res and res.Position.Y or (hrp.Position.Y - 3)
+U.Y = U.GroundY - U.Depth
+U.Enabled = true
+hrp.CFrame = CFrame.new(hrp.Position.X, U.Y, hrp.Position.Z)
+pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end)
+UnderFloat.SetOn(true)
+if U.Hide then HideAllTerrainParts() end
+if U.Duration > 0 then
+    task.delay(U.Duration, function()
+        if not Unloaded and U.Enabled and U.RunToken == runToken then
+            SetUnder(false)
+            Notify("Under Plan+Invisibility", "Hết thời gian; đã khôi phục", 3)
+        end
+    end)
+end
+else
+U.Enabled = false
+RestoreHidden()
+UnderFloat.SetOn(false)
+pcall(function() Invis.Set(false) end)
+pcall(function() if GhostEnabled then SetGhost(false) end end)
+if hrp then
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = { LocalPlayer.Character }
+params.IgnoreWater = true
+local baseY = (U.OverPos and U.OverPos.Y) or (U.GroundY or hrp.Position.Y) + 5
+local origin = Vector3.new(hrp.Position.X, baseY + 150, hrp.Position.Z)
+local res = Workspace:Raycast(origin, Vector3.new(0, -1000, 0), params)
+local dest
+if res then
+dest = res.Position + Vector3.new(0, 4, 0)
+elseif U.OverPos then
+dest = U.OverPos + Vector3.new(0, 3, 0)
+else
+dest = hrp.Position + Vector3.new(0, 50, 0)
+end
+hrp.CFrame = CFrame.new(dest)
+pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end)
+end
+if hum then hum.PlatformStand = false end
+end
+end
+
+local function ForceUnderOff()
+State.Under.Enabled = false
+RestoreHidden()
+UnderFloat.SetOn(false)
+end
+
+local function UpdateUnder(dt, hrp, hum)
+local U = State.Under
+if not U.Enabled or not hrp or not hum then return end
+hum.PlatformStand = true
+local move = hum.MoveDirection
+local vy = math.clamp((U.Y - hrp.Position.Y) * 8, -80, 80)
+hrp.AssemblyLinearVelocity = Vector3.new(move.X * U.Speed, vy, move.Z * U.Speed)
+hrp.AssemblyAngularVelocity = Vector3.zero
+local _, yaw = hrp.CFrame:ToEulerAnglesYXZ()
+hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, yaw, 0)
+end
+
+CreateHeader(TabMem, "UNDER PLAN + INVISIBILITY")
+CreateLabel(TabMem, "Bật Under sẽ bật tàng hình cục bộ; thời gian tự tắt có thể chỉnh bên dưới.", C.Sub)
+CreateSlider(TabMem, "Thời gian Under + Invisibility (0 = thủ công, 1–5s tự tắt)", 0, 5, 0, function(v)
+    State.Under.Duration = math.clamp(v, 0, 5)
+end)
+CreateToggle(TabMem, "Under Plan + Invisibility (hiện nút nổi)", false, function(s)
+UnderFloat.Show(s)
+if not s and State.Under.Enabled then SetUnder(false) end
+end)
+CreateSlider(TabMem, "Độ sâu dưới mặt đất", 5, 300, 30, function(v)
+State.Under.Depth = v
+if State.Under.Enabled and State.Under.GroundY then
+State.Under.Y = State.Under.GroundY - v
+end
+end)
+CreateSlider(TabMem, "Tốc độ di chuyển Under", 1, 200, 40, function(v) State.Under.Speed = v end)
+CreateToggle(TabMem, "Ẩn địa hình khi Under", true, function(s)
+State.Under.Hide = s
+if State.Under.Enabled then
+if s then HideAllTerrainParts() else RestoreHidden() end
+end
+end)
+UnderFloat.OnTap(function() SetUnder(not State.Under.Enabled) end)
+
+CreateHeader(TabMem, "TIỆN ÍCH")
+local function SetFullbright(on)
+if on then
+if not LightOrig then
+LightOrig = {
+Brightness = Lighting.Brightness, ClockTime = Lighting.ClockTime, FogEnd = Lighting.FogEnd,
+GlobalShadows = Lighting.GlobalShadows, Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient
+}
+end
+Lighting.Brightness = 2
+Lighting.ClockTime = 14
+Lighting.FogEnd = 100000
+Lighting.GlobalShadows = false
+Lighting.Ambient = Color3.fromRGB(200, 200, 200)
+Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
+elseif LightOrig then
+for k, v in pairs(LightOrig) do
+pcall(function() Lighting[k] = v end)
+end
+LightOrig = nil
+end
+end
+CreateToggle(TabMem, "Fullbright", false, SetFullbright)
+CreateToggle(TabMem, "Anti-AFK", false, function(s) State.Player.AntiAFK = s end)
+
+Connections[#Connections + 1] = LocalPlayer.Idled:Connect(function()
+if State.Player.AntiAFK then
+pcall(function()
+local vu = game:GetService("VirtualUser")
+vu:CaptureController()
+vu:ClickButton2(Vector2.new())
+end)
+end
+end)
+
+Connections[#Connections + 1] = UserInputService.JumpRequest:Connect(function()
+if State.Player.InfJump then
+local _, hum = GetHRP()
+if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+end
+end)
+
+Connections[#Connections + 1] = RunService.Stepped:Connect(function()
+if (State.Player.Noclip or State.Under.Enabled) and LocalPlayer.Character then
+for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+if part:IsA("BasePart") then part.CanCollide = false end
+end
+end
+end)
+
+local function RestorePlayer()
+local _, hum = GetHRP()
+if hum then
+pcall(function() hum.WalkSpeed = State.Player.DefSpeed end)
+pcall(function() hum.JumpPower = State.Player.DefJump end)
+end
+end
+
+Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function()
+State.Memory.InSky = false
+if State.Memory.TeleSky2 then pcall(function() SetTeleSky2(false) end) end
+if State.Memory.FastTalk then pcall(function() SetFastTalk(false) end) end
+if State.Memory.FastAttack then pcall(function() SetFastAttack(false) end) end
+State.Memory.LockNV = false
+State.Memory.LockNVData = nil
+LockNVFloat.SetOn(false)
+SkyFloat.SetOn(false)
+if State.Under.Enabled then ForceUnderOff() end
+DestroyFlyBodies()
+end)
+
+local TabSet = CreateTab("Setting")
+CreateHeader(TabSet, "ÂM THANH")
+CreateToggle(TabSet, "Âm thanh nút bấm (tíc)", true, function(s) State.Settings.Sound = s end)
+CreateSlider(TabSet, "Âm lượng (%)", 0, 100, 80, function(v) State.Settings.Volume = v end)
+
+CreateHeader(TabSet, "GIAO DIỆN")
+CreateSlider(TabSet, "Cỡ menu (%)", 50, 160, math.floor(startScale * 100), function(v) MainScale.Scale = v / 100 end)
+CreateButton(TabSet, "Đưa menu về giữa màn hình", function()
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+end)
+CreateLabel(TabSet, "Phiên bản: " .. TITLE_RICH)
+
+CreateHeader(TabSet, "HỆ THỐNG")
+
+local function Unload()
+if Unloaded then return end
+Unloaded = true
+BannerActive = false
+pcall(function() SetFly(false) end)
+State.Memory.FlyUpX2 = false
+pcall(function() local r = GetHRP(); if r then local v = r.AssemblyLinearVelocity; r.AssemblyLinearVelocity = Vector3.new(v.X, 0, v.Z) end end)
+pcall(DestroyFlyBodies)
+pcall(function()
+State.Under.Enabled = false
+RestoreHidden()
+end)
+pcall(ClearChams)
+pcall(function() Invis.Set(false) end)
+pcall(function() if GhostEnabled then SetGhost(false) end end)
+pcall(function() SetSpinPlayer(false) end)
+pcall(function() if State.Memory.LockNV then SetLockNV(false) end end)
+pcall(function() if State.Memory.SpeedTime then SetSpeedTime(false) end end)
+pcall(function()
+if TeleWallSaved and Workspace.CurrentCamera then
+Workspace.CurrentCamera.CameraType = TeleWallSaved.Type
+Workspace.CurrentCamera.CameraSubject = TeleWallSaved.Subject
+Workspace.CurrentCamera.CFrame = TeleWallSaved.CFrame
+Workspace.CurrentCamera.Focus = TeleWallSaved.Focus
+TeleWallSaved = nil
+end
+end)
+pcall(RestorePlayer)
+pcall(function() SetFullbright(false) end)
+pcall(function() if State.Memory.TeleSky2 then SetTeleSky2(false) end end)
+pcall(function() if State.Memory.FastTalk then SetFastTalk(false) end end)
+pcall(function() if State.Memory.FastAttack then SetFastAttack(false) end end)
+pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
+for _, c in ipairs(Connections) do pcall(function() c:Disconnect() end) end
+ClearTableCompat(Connections)
+for plr in pairs(ESPObjects) do RemoveESP(plr) end
+for _, d in pairs(Drawings) do pcall(function() d:Remove() end) end
+ClearTableCompat(Drawings)
+pcall(function() ClickSound:Destroy() end)
+pcall(function() ScreenGui:Destroy() end)
+pcall(function() NotifyGui:Destroy() end)
+end
+Env.HyperSunUnload = Unload
+
+CreateButton(TabSet, "Gỡ script (Unload)", Unload)
+
+SelectTab("Function")
+
+local fpsTimer, fpsFrames = 0, 0
+local fixTimer = 0
+local FeatureErrorShown = {}
+local function SafeFeatureCall(featureName, fn, ...)
+    local args = {...}
+    local ok, err = pcall(function() fn(table.unpack(args)) end)
+    if not ok then
+        warn("[HyperSun 2.4 Beta] " .. tostring(featureName) .. ": " .. tostring(err))
+        if not FeatureErrorShown[featureName] then
+            FeatureErrorShown[featureName] = true
+            pcall(function()
+                Notify("HyperSun · Lỗi chức năng", tostring(featureName) .. ": " .. tostring(err), 8)
+            end)
+        end
+    end
+    return ok
+end
+
+local function GetPing()
+local ok, v = pcall(function()
+return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+end)
+if ok and v then return math.floor(v) end
+return 0
+end
+
+Connections[#Connections + 1] = RunService.RenderStepped:Connect(function(dt)
+if Unloaded then return end
+Camera = Workspace.CurrentCamera or Camera
+
+fpsTimer = fpsTimer + dt
+fpsFrames = fpsFrames + 1
+if fpsTimer >= 0.5 then
+FooterStats.Text = "FPS " .. math.floor(fpsFrames / fpsTimer + 0.5)
+.. "  |  Ping " .. GetPing() .. " ms  |  Players " .. #Players:GetPlayers()
+fpsTimer, fpsFrames = 0, 0
+end
+
+if State.Under.Enabled then
+fixTimer = fixTimer + dt
+if fixTimer >= 1 then
+fixTimer = 0
+SafeFeatureCall("FixCharacters", FixCharacters)
+end
+end
+
+SafeFeatureCall("UpdateESP", UpdateESP)
+SafeFeatureCall("UpdateChams", UpdateChams)
+
+local hrp, hum = GetHRP()
+
+if SpinPlayer.Enabled and hrp and hum and hum.Health > 0 then
+    SpinPlayer.Angle = SpinPlayer.Angle + math.rad(90 * SpinPlayer.Speed) * dt
+    pcall(function()
+        hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, SpinPlayer.Angle, 0)
+    end)
+end
+
+if State.Memory.FlyUpX2 and hrp and hum and hum.Health > 0 and not State.Memory.FlyEnabled and not State.Under.Enabled then
+local phase = os.clock() * 2.4
+local verticalVelocity = math.sin(phase) * 10
+pcall(function()
+local velocity = hrp.AssemblyLinearVelocity
+hrp.AssemblyLinearVelocity = Vector3.new(velocity.X, verticalVelocity, velocity.Z)
+end)
+end
+
+if hum then
+if State.Memory.SpeedTime then hum.WalkSpeed = 40
+elseif State.Player.SpeedOn then hum.WalkSpeed = State.Player.Speed end
+if State.Player.JumpOn then
+pcall(function()
+hum.UseJumpPower = true
+hum.JumpPower = State.Player.Jump
+end)
+end
+end
+
+SafeFeatureCall("UpdateFly", UpdateFly, dt, hrp, hum)
+SafeFeatureCall("UpdateUnder", UpdateUnder, dt, hrp, hum)
+end)
+
+Connections[#Connections + 1] = LocalPlayer.OnTeleport:Connect(function()
+pcall(Unload)
+end)
