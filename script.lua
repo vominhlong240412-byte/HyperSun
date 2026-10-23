@@ -1,3 +1,6 @@
+local HS = {}
+
+
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -93,9 +96,9 @@ Settings = { Sound = true, Volume = 80 }
 local Connections = {}
 local Drawings = {}
 local ESPObjects = {}
-local ChamObjs = {}
-local UnderHidden = {}
-local LightOrig = nil
+HS.ChamObjs = {}
+HS.UnderHidden = {}
+HS.LightOrig = nil
 local Unloaded = false
 
 local function Create(class, props, parent)
@@ -123,18 +126,18 @@ if plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then return fa
 return true
 end
 
-local ClickSound = Instance.new("Sound")
-ClickSound.Name = "HyperSunClick"
-ClickSound.Volume = 0.95
-ClickSound.PlaybackSpeed = 0.72
-ClickSound.SoundId = "rbxasset://sounds/button.wav"
-ClickSound.Parent = SoundService
-local ClickEcho = Instance.new("EchoSoundEffect")
-ClickEcho.Delay = 0.12
-ClickEcho.Feedback = 0.22
-ClickEcho.WetLevel = -10
-ClickEcho.DryLevel = 0
-ClickEcho.Parent = ClickSound
+HS.ClickSound = Instance.new("Sound")
+HS.ClickSound.Name = "HyperSunClick"
+HS.ClickSound.Volume = 0.95
+HS.ClickSound.PlaybackSpeed = 0.72
+HS.ClickSound.SoundId = "rbxasset://sounds/button.wav"
+HS.ClickSound.Parent = SoundService
+HS.ClickEcho = Instance.new("EchoSoundEffect")
+HS.ClickEcho.Delay = 0.12
+HS.ClickEcho.Feedback = 0.22
+HS.ClickEcho.WetLevel = -10
+HS.ClickEcho.DryLevel = 0
+HS.ClickEcho.Parent = HS.ClickSound
 
 task.spawn(function()
 local candidates = {
@@ -144,29 +147,29 @@ local candidates = {
 }
 for _, id in ipairs(candidates) do
 if Unloaded then return end
-ClickSound.SoundId = id
-pcall(function() ContentProvider:PreloadAsync({ ClickSound }) end)
-if ClickSound.TimeLength > 0 then return end
+HS.ClickSound.SoundId = id
+pcall(function() ContentProvider:PreloadAsync({ HS.ClickSound }) end)
+if HS.ClickSound.TimeLength > 0 then return end
 end
-ClickSound.SoundId = candidates[1]
+HS.ClickSound.SoundId = candidates[1]
 end)
 
 local function Click()
 if not State.Settings.Sound or Unloaded then return end
 pcall(function()
-ClickSound.Volume = math.clamp(State.Settings.Volume / 100 * 1.12, 0, 1)
-ClickSound.PlaybackSpeed = 0.72
-ClickSound.TimePosition = 0
-ClickSound:Play()
+HS.ClickSound.Volume = math.clamp(State.Settings.Volume / 100 * 1.12, 0, 1)
+HS.ClickSound.PlaybackSpeed = 0.72
+HS.ClickSound.TimePosition = 0
+HS.ClickSound:Play()
 end)
 end
 
-local NotifyGui = Create("ScreenGui", { Name = "HyperSunNotify", ResetOnSpawn = false, IgnoreGuiInset = true }, Root)
-local NotifyContainer = Create("Frame", {
+HS.NotifyGui = Create("ScreenGui", { Name = "HyperSunNotify", ResetOnSpawn = false, IgnoreGuiInset = true }, Root)
+HS.NotifyContainer = Create("Frame", {
 BackgroundTransparency = 1, Position = UDim2.new(1, -20, 0, 42),
 AnchorPoint = Vector2.new(1, 0), Size = UDim2.new(0, 260, 1, -62)
-}, NotifyGui)
-Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10) }, NotifyContainer)
+}, HS.NotifyGui)
+Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10) }, HS.NotifyContainer)
 
 local function Notify(title, text, duration)
 duration = duration or 5
@@ -174,7 +177,7 @@ if Unloaded then return end
 local frame = Create("Frame", {
 Size = UDim2.new(1, 0, 0, 56), BackgroundColor3 = C.Panel,
 BackgroundTransparency = 0.04, BorderSizePixel = 0, Position = UDim2.new(0, 24, 0, 0)
-}, NotifyContainer)
+}, HS.NotifyContainer)
 Create("UICorner", { CornerRadius = UDim.new(0, 11) }, frame)
 Create("UIStroke", { Color = C.Accent, Thickness = 1.35, Transparency = 0.12 }, frame)
 Create("UIGradient", { Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(33, 28, 62)), ColorSequenceKeypoint.new(1, C.Panel)}), Rotation = 15 }, frame)
@@ -206,125 +209,125 @@ end
 end)
 end
 
-local Invis = { Enabled = false, Saved = {}, AddedConn = nil, NameMode = nil }
-local InvisToggle = nil
-local InvisFloat = nil
+HS.Invis = { Enabled = false, Saved = {}, AddedConn = nil, NameMode = nil }
+HS.InvisToggle = nil
+HS.InvisFloat = nil
 
-local function InvisSave(inst, property)
-if Invis.Saved[inst] == nil then
+function HS.InvisSave(inst, property)
+if HS.Invis.Saved[inst] == nil then
 local ok, value = pcall(function() return inst[property] end)
-if ok then Invis.Saved[inst] = { property = property, value = value } end
+if ok then HS.Invis.Saved[inst] = { property = property, value = value } end
 end
 end
 
-local function InvisHide(inst)
+function HS.InvisHide(inst)
 if inst:IsA("BasePart") then
-InvisSave(inst, "LocalTransparencyModifier")
+HS.InvisSave(inst, "LocalTransparencyModifier")
 pcall(function() inst.LocalTransparencyModifier = 1 end)
 elseif inst:IsA("Decal") or inst:IsA("Texture") then
-InvisSave(inst, "Transparency")
+HS.InvisSave(inst, "Transparency")
 pcall(function() inst.Transparency = 1 end)
 elseif inst:IsA("ParticleEmitter") or inst:IsA("Trail") or inst:IsA("Beam") then
-InvisSave(inst, "Enabled")
+HS.InvisSave(inst, "Enabled")
 pcall(function() inst.Enabled = false end)
 end
 end
 
-local function InvisApplyCharacter(char)
-if not char or not Invis.Enabled then return end
+function HS.InvisApplyCharacter(char)
+if not char or not HS.Invis.Enabled then return end
 for _, inst in ipairs(char:GetDescendants()) do
-InvisHide(inst)
+HS.InvisHide(inst)
 end
-if Invis.AddedConn then
-pcall(function() Invis.AddedConn:Disconnect() end)
-Invis.AddedConn = nil
+if HS.Invis.AddedConn then
+pcall(function() HS.Invis.AddedConn:Disconnect() end)
+HS.Invis.AddedConn = nil
 end
-Invis.AddedConn = char.DescendantAdded:Connect(function(inst)
-if Invis.Enabled then task.defer(function() if Invis.Enabled and inst.Parent then InvisHide(inst) end end) end
+HS.Invis.AddedConn = char.DescendantAdded:Connect(function(inst)
+if HS.Invis.Enabled then task.defer(function() if HS.Invis.Enabled and inst.Parent then HS.InvisHide(inst) end end) end
 end)
 local hum = char:FindFirstChildOfClass("Humanoid")
 if hum then
 pcall(function()
-Invis.NameMode = hum.DisplayDistanceType
+HS.Invis.NameMode = hum.DisplayDistanceType
 hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 end)
 end
 end
 
-local function InvisRestore()
-if Invis.AddedConn then pcall(function() Invis.AddedConn:Disconnect() end); Invis.AddedConn = nil end
-for inst, rec in pairs(Invis.Saved) do
+function HS.InvisRestore()
+if HS.Invis.AddedConn then pcall(function() HS.Invis.AddedConn:Disconnect() end); HS.Invis.AddedConn = nil end
+for inst, rec in pairs(HS.Invis.Saved) do
 if inst and inst.Parent then pcall(function() inst[rec.property] = rec.value end) end
 end
-ClearTableCompat(Invis.Saved)
+ClearTableCompat(HS.Invis.Saved)
 local char = LocalPlayer.Character
 local hum = char and char:FindFirstChildOfClass("Humanoid")
-if hum and Invis.NameMode ~= nil then pcall(function() hum.DisplayDistanceType = Invis.NameMode end) end
-Invis.NameMode = nil
+if hum and HS.Invis.NameMode ~= nil then pcall(function() hum.DisplayDistanceType = HS.Invis.NameMode end) end
+HS.Invis.NameMode = nil
 end
 
-function Invis.Set(on)
+function HS.Invis.Set(on)
 on = on and true or false
-if on == Invis.Enabled then
-if InvisToggle then InvisToggle.Set(on, false) end
-if InvisFloat then InvisFloat.SetOn(on) end
+if on == HS.Invis.Enabled then
+if HS.InvisToggle then HS.InvisToggle.Set(on, false) end
+if HS.InvisFloat then HS.InvisFloat.SetOn(on) end
 return
 end
-Invis.Enabled = on
+HS.Invis.Enabled = on
 if on then
 local char = LocalPlayer.Character
 if not char then
-Invis.Enabled = false
+HS.Invis.Enabled = false
 Notify("Invisibility", "Nhân vật chưa sẵn sàng", 4)
 else
-InvisApplyCharacter(char)
+HS.InvisApplyCharacter(char)
 Notify("Invisibility", "Đã ẩn nhân vật trên màn hình của bạn", 4)
 end
 else
-InvisRestore()
+HS.InvisRestore()
 Notify("Invisibility", "Đã khôi phục hiển thị nhân vật", 3)
 end
-if InvisToggle then InvisToggle.Set(Invis.Enabled, false) end
-if InvisFloat then InvisFloat.SetOn(Invis.Enabled) end
+if HS.InvisToggle then HS.InvisToggle.Set(HS.Invis.Enabled, false) end
+if HS.InvisFloat then HS.InvisFloat.SetOn(HS.Invis.Enabled) end
 end
 
 Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function(char)
 task.wait(0.5)
-if Invis.Enabled then
-ClearTableCompat(Invis.Saved)
-InvisApplyCharacter(char)
+if HS.Invis.Enabled then
+ClearTableCompat(HS.Invis.Saved)
+HS.InvisApplyCharacter(char)
 end
 end)
 
-local Banner = Create("Frame", {
+HS.Banner = Create("Frame", {
 Size = UDim2.new(0, 178, 0, 26), Position = UDim2.new(1, -10, 0, 8), AnchorPoint = Vector2.new(1, 0),
 BackgroundColor3 = C.Panel, BackgroundTransparency = 0.2, BorderSizePixel = 0, Visible = false
-}, NotifyGui)
-Create("UICorner", { CornerRadius = UDim.new(0, 8) }, Banner)
-Create("UIStroke", { Color = Color3.fromRGB(255, 213, 0), Thickness = 1, Transparency = 0.5 }, Banner)
-local BannerText = Create("TextLabel", {
+}, HS.NotifyGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 8) }, HS.Banner)
+Create("UIStroke", { Color = Color3.fromRGB(255, 213, 0), Thickness = 1, Transparency = 0.5 }, HS.Banner)
+HS.BannerText = Create("TextLabel", {
 Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, RichText = true, Text = TITLE_RICH,
 TextColor3 = Color3.new(1, 1, 1), Font = FONT_B, TextSize = 14
-}, Banner)
+}, HS.Banner)
 
-local BannerActive = false
-local BannerRunning = false
-local function SetBanner(on)
-BannerActive = on and true or false
-Banner.Visible = BannerActive
-BannerText.TextTransparency = 0
-if BannerActive and not BannerRunning then
-BannerRunning = true
+HS.BannerActive = false
+HS.BannerRunning = false
+function HS.SetBanner(on)
+HS.BannerActive = on and true or false
+HS.Banner.Visible = HS.BannerActive
+HS.BannerText.TextTransparency = 0
+if HS.BannerActive and not HS.BannerRunning then
+HS.BannerRunning = true
 task.spawn(function()
-while BannerActive and not Unloaded do
+while HS.BannerActive and not Unloaded do
 task.wait(1.7)
-if not BannerActive or Unloaded then break end
-TweenService:Create(BannerText, TweenInfo.new(0.1), { TextTransparency = 1 }):Play()
+if not HS.BannerActive or Unloaded then break end
+TweenService:Create(HS.BannerText, TweenInfo.new(0.1), { TextTransparency = 1 }):Play()
 task.wait(0.12)
-TweenService:Create(BannerText, TweenInfo.new(0.1), { TextTransparency = 0 }):Play()
+TweenService:Create(HS.BannerText, TweenInfo.new(0.1), { TextTransparency = 0 }):Play()
 task.wait(0.1)
 end
-BannerRunning = false
+HS.BannerRunning = false
 end)
 end
 end
@@ -402,77 +405,77 @@ Rotation = 90
 }, Main)
 
 local vp = Camera.ViewportSize
-local startScale = math.clamp((vp.Y - 24) / WIN_H, 0.5, 1.2)
-local MainScale = Create("UIScale", { Scale = startScale }, Main)
+HS.startScale = math.clamp((vp.Y - 24) / WIN_H, 0.5, 1.2)
+HS.MainScale = Create("UIScale", { Scale = HS.startScale }, Main)
 
-local TopBar = Create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1 }, Main)
-local CollapseBtn = Create("TextButton", {
+HS.TopBar = Create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1 }, Main)
+HS.CollapseBtn = Create("TextButton", {
 Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1,
 Text = "▼", TextColor3 = C.Text, Font = FONT_B, TextSize = 15, ZIndex = 3
-}, TopBar)
+}, HS.TopBar)
 Create("TextLabel", {
 Size = UDim2.new(1, -90, 1, 0), Position = UDim2.new(0, 38, 0, 0), BackgroundTransparency = 1,
 RichText = true, Text = TITLE_RICH, TextColor3 = C.Text, Font = FONT_B, TextSize = 15,
 TextXAlignment = Enum.TextXAlignment.Left
-}, TopBar)
-local CloseBtn = Create("TextButton", {
+}, HS.TopBar)
+HS.CloseBtn = Create("TextButton", {
 Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(1, -36, 0, 0), BackgroundTransparency = 1,
 Text = "X", TextColor3 = C.Sub, Font = FONT_B, TextSize = 15, ZIndex = 3
-}, TopBar)
+}, HS.TopBar)
 Create("Frame", {
 Size = UDim2.new(1, -16, 0, 1), Position = UDim2.new(0, 8, 1, -1),
 BackgroundColor3 = Color3.fromRGB(255, 45, 65), BackgroundTransparency = 0.28, BorderSizePixel = 0
-}, TopBar)
+}, HS.TopBar)
 
-MakeDraggable(Main, TopBar)
+MakeDraggable(Main, HS.TopBar)
 
-local Body = Create("Frame", {
+HS.Body = Create("Frame", {
 Size = UDim2.new(1, 0, 1, -36), Position = UDim2.new(0, 0, 0, 36), BackgroundTransparency = 1
 }, Main)
 
-local Sidebar = Create("ScrollingFrame", {
+HS.Sidebar = Create("ScrollingFrame", {
 Size = UDim2.new(0, 114, 1, -38), Position = UDim2.new(0, 8, 0, 0), BackgroundTransparency = 1,
 BorderSizePixel = 0, ScrollBarThickness = 0,
 CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
-}, Body)
-Create("UIListLayout", { Padding = UDim.new(0, 7), SortOrder = Enum.SortOrder.LayoutOrder }, Sidebar)
+}, HS.Body)
+Create("UIListLayout", { Padding = UDim.new(0, 7), SortOrder = Enum.SortOrder.LayoutOrder }, HS.Sidebar)
 
 local Content = Create("ScrollingFrame", {
 Size = UDim2.new(1, -136, 1, -38), Position = UDim2.new(0, 128, 0, 0),
 BackgroundColor3 = Color3.fromRGB(10, 7, 8), BackgroundTransparency = 0.18,
 BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = C.Accent,
 CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
-}, Body)
+}, HS.Body)
 Create("UICorner", { CornerRadius = UDim.new(0, 9) }, Content)
 Create("UIPadding", {
 PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8),
 PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 10)
 }, Content)
 
-local Footer = Create("Frame", {
+HS.Footer = Create("Frame", {
 Size = UDim2.new(1, -16, 0, 24), Position = UDim2.new(0, 8, 1, -28),
 BackgroundColor3 = C.Panel, BackgroundTransparency = 0.3, BorderSizePixel = 0
-}, Body)
-Create("UICorner", { CornerRadius = UDim.new(0, 7) }, Footer)
-local FooterStats = Create("TextLabel", {
+}, HS.Body)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, HS.Footer)
+HS.FooterStats = Create("TextLabel", {
 Size = UDim2.new(0.6, 0, 1, 0), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
 Text = "FPS --  |  Ping -- ms  |  Players --", TextColor3 = C.Sub, Font = FONT_N, TextSize = 12,
 TextXAlignment = Enum.TextXAlignment.Left
-}, Footer)
+}, HS.Footer)
 Create("TextLabel", {
 Size = UDim2.new(0.4, -10, 1, 0), Position = UDim2.new(0.6, 0, 0, 0), BackgroundTransparency = 1,
 RichText = true, Text = TITLE_RICH, TextColor3 = C.Text, Font = FONT_B, TextSize = 12,
 TextXAlignment = Enum.TextXAlignment.Right
-}, Footer)
+}, HS.Footer)
 
-local MenuIcon = Create("TextButton", {
+HS.MenuIcon = Create("TextButton", {
 Size = UDim2.new(0, 48, 0, 48), Position = UDim2.new(0, 14, 0.5, -24), BackgroundColor3 = C.Panel,
 Text = "✦", TextColor3 = Color3.fromRGB(255, 255, 255), Font = FONT_B, TextSize = 27, Visible = false
 }, ScreenGui)
-Create("UICorner", { CornerRadius = UDim.new(1, 0) }, MenuIcon)
-Create("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(255, 35, 58), Color3.fromRGB(105, 5, 18)), Rotation = 35 }, MenuIcon)
-Create("UIStroke", { Color = Color3.fromRGB(255, 65, 82), Thickness = 2 }, MenuIcon)
-MakeDraggable(MenuIcon, MenuIcon)
+Create("UICorner", { CornerRadius = UDim.new(1, 0) }, HS.MenuIcon)
+Create("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(255, 35, 58), Color3.fromRGB(105, 5, 18)), Rotation = 35 }, HS.MenuIcon)
+Create("UIStroke", { Color = Color3.fromRGB(255, 65, 82), Thickness = 2 }, HS.MenuIcon)
+MakeDraggable(HS.MenuIcon, HS.MenuIcon)
 
 -- Animated startup title: letter-by-letter reveal with a red glow.
 task.spawn(function()
@@ -515,21 +518,21 @@ task.spawn(function()
 end)
 
 local Collapsed = false
-CollapseBtn.MouseButton1Click:Connect(function()
+HS.CollapseBtn.MouseButton1Click:Connect(function()
 Click()
 Collapsed = not Collapsed
-Body.Visible = not Collapsed
-CollapseBtn.Text = Collapsed and "▶" or "▼"
+HS.Body.Visible = not Collapsed
+HS.CollapseBtn.Text = Collapsed and "▶" or "▼"
 Main.Size = Collapsed and UDim2.new(0, WIN_W, 0, 36) or UDim2.new(0, WIN_W, 0, WIN_H)
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
+HS.CloseBtn.MouseButton1Click:Connect(function()
 Click()
 Main.Visible = false
-MenuIcon.Visible = true
+HS.MenuIcon.Visible = true
 end)
-OnTap(MenuIcon, function()
-MenuIcon.Visible = false
+OnTap(HS.MenuIcon, function()
+HS.MenuIcon.Visible = false
 Main.Visible = true
 end)
 
@@ -538,7 +541,7 @@ if gpe then return end
 if input.KeyCode == Enum.KeyCode.RightShift then
 local show = not Main.Visible
 Main.Visible = show
-MenuIcon.Visible = not show
+HS.MenuIcon.Visible = not show
 end
 end)
 
@@ -557,7 +560,7 @@ local function CreateTab(name)
 local btn = Create("TextButton", {
 Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = C.Tab, BackgroundTransparency = 0.1, Text = name,
 TextColor3 = Color3.fromRGB(200, 200, 200), Font = FONT_B, TextSize = 14, AutoButtonColor = false
-}, Sidebar)
+}, HS.Sidebar)
 Create("UICorner", { CornerRadius = UDim.new(0, 7) }, btn)
 local frame = Create("Frame", {
 Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Visible = false
@@ -599,7 +602,7 @@ RichText = true
 }, parent)
 end
 
-local function BuildSwitch(parent, pos, on)
+function HS.BuildSwitch(parent, pos, on)
 local track = Create("Frame", {
 Size = UDim2.new(0, 46, 0, 24), Position = pos, AnchorPoint = Vector2.new(1, 0.5),
 BackgroundColor3 = on and C.Accent or C.Off, BorderSizePixel = 0
@@ -633,7 +636,7 @@ Size = UDim2.new(1, -68, 1, 0), Position = UDim2.new(0, 12, 0, 0), BackgroundTra
 Text = text, TextColor3 = C.Text, Font = FONT_N, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
 TextTruncate = Enum.TextTruncate.AtEnd
 }, row)
-local sw = BuildSwitch(row, UDim2.new(1, -10, 0.5, 0), default)
+local sw = HS.BuildSwitch(row, UDim2.new(1, -10, 0.5, 0), default)
 local state = default
 local obj = {}
 function obj.Set(v, fire)
@@ -723,10 +726,10 @@ end)
 return b
 end
 
-local FloatingFrames = {}
-local function RefreshFloatPositions()
+HS.FloatingFrames = {}
+function HS.RefreshFloatPositions()
 local visible = {}
-for _, frame in ipairs(FloatingFrames) do
+for _, frame in ipairs(HS.FloatingFrames) do
 if frame and frame.Parent and frame.Visible then table.insert(visible, frame) end
 end
 local step = 44
@@ -736,12 +739,12 @@ frame.Position = UDim2.new(0.5, 0, 0.5, (i - (#visible + 1) / 2) * step)
 frame.ZIndex = 50 + i
 end
 end
-local function CreateFloat(label, y)
+function HS.CreateFloat(label, y)
 local f = Create("Frame", {
 Size = UDim2.new(0, 150, 0, 36), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.Panel,
 BackgroundTransparency = 0.1, Visible = false, ZIndex = 50
 }, ScreenGui)
-table.insert(FloatingFrames, f)
+table.insert(HS.FloatingFrames, f)
 Create("UICorner", { CornerRadius = UDim.new(0, 9) }, f)
 Create("UIStroke", { Color = C.Accent, Thickness = 1, Transparency = 0.4 }, f)
 Create("TextLabel", {
@@ -749,12 +752,12 @@ Size = UDim2.new(1, -66, 1, 0), Position = UDim2.new(0, 12, 0, 0), BackgroundTra
 Text = label, TextColor3 = C.Text, Font = FONT_B, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
 TextTruncate = Enum.TextTruncate.AtEnd
 }, f)
-local sw = BuildSwitch(f, UDim2.new(1, -10, 0.5, 0), false)
+local sw = HS.BuildSwitch(f, UDim2.new(1, -10, 0.5, 0), false)
 MakeDraggable(f, f)
 local obj = { Frame = f }
 function obj.Show(v)
 f.Visible = v and true or false
-RefreshFloatPositions()
+HS.RefreshFloatPositions()
 end
 function obj.SetOn(v) sw.Set(v) end
 function obj.OnTap(fn) OnTap(f, fn) end
@@ -780,18 +783,18 @@ end
 return obj
 end
 
-local TabFunc = CreateTab("Function")
-CreateHeader(TabFunc, "CHỨC NĂNG CHÍNH")
-CreateLabel(TabFunc, "Bản Fix: nếu module lỗi, thông báo sẽ hiển thị chi tiết thay vì bị ẩn.", C.Sub)
-CreateToggle(TabFunc, "Áp dụng Các chức năng", false, function(s) State.Features.Apply = s end)
-CreateToggle(TabFunc, "Áp dụng Aimbot", false, function(s) State.Features.Aimbot = s end)
-CreateToggle(TabFunc, "Áp dụng ESP", false, function(s) State.Features.ESP = s end)
-CreateToggle(TabFunc, "Bypass", false, function(s)
+HS.TabFunc = CreateTab("Function")
+CreateHeader(HS.TabFunc, "CHỨC NĂNG CHÍNH")
+CreateLabel(HS.TabFunc, "Bản Fix: nếu module lỗi, thông báo sẽ hiển thị chi tiết thay vì bị ẩn.", C.Sub)
+CreateToggle(HS.TabFunc, "Áp dụng Các chức năng", false, function(s) State.Features.Apply = s end)
+CreateToggle(HS.TabFunc, "Áp dụng Aimbot", false, function(s) State.Features.Aimbot = s end)
+CreateToggle(HS.TabFunc, "Áp dụng ESP", false, function(s) State.Features.ESP = s end)
+CreateToggle(HS.TabFunc, "Bypass", false, function(s)
 State.Features.Bypass = s
-SetBanner(s)
+HS.SetBanner(s)
 Notify(s and "Bypass UI đã bật" or "Bypass UI đã tắt", s and "Hiệu ứng giao diện được kích hoạt" or "Đã dừng hiệu ứng giao diện", 4)
 end)
-CreateToggle(TabFunc, "Patched AntiBan (UI only)", false, function(s)
+CreateToggle(HS.TabFunc, "Patched AntiBan (UI only)", false, function(s)
 State.Features.AntiBanUI = s
 if s then
 Notify("Patched AntiBan 2.4 Beta", "Trạng thái giao diện; không bảo đảm chống ban", 5)
@@ -800,48 +803,48 @@ Notify("AntiBan UI đã tắt", "Không có bảo vệ chống ban thực sự",
 end
 end)
 
-CreateHeader(TabFunc, "THÔNG TIN SCRIPT")
-local activationTime = os.date("%Y-%m-%d %H:%M:%S")
-CreateLabel(TabFunc, "Username Roblox: " .. tostring(LocalPlayer.Name), C.Text)
-CreateLabel(TabFunc, "Giờ kích hoạt: " .. activationTime, C.Sub)
-CreateLabel(TabFunc, "Thời hạn key: N/A", C.Sub)
-CreateLabel(TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
-CreateLabel(TabFunc, "Anti Kick: N/A", C.Sub)
-CreateLabel(TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
-CreateLabel(TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
-CreateLabel(TabFunc, "By: HyperSun 2.4 Beta", C.Text)
+CreateHeader(HS.TabFunc, "THÔNG TIN SCRIPT")
+HS.activationTime = os.date("%Y-%m-%d %H:%M:%S")
+CreateLabel(HS.TabFunc, "Username Roblox: " .. tostring(LocalPlayer.Name), C.Text)
+CreateLabel(HS.TabFunc, "Giờ kích hoạt: " .. HS.activationTime, C.Sub)
+CreateLabel(HS.TabFunc, "Thời hạn key: N/A", C.Sub)
+CreateLabel(HS.TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
+CreateLabel(HS.TabFunc, "Anti Kick: N/A", C.Sub)
+CreateLabel(HS.TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
+CreateLabel(HS.TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
+CreateLabel(HS.TabFunc, "By: HyperSun 2.4 Beta", C.Text)
 
-CreateHeader(TabFunc, "BỘ LỌC MỤC TIÊU")
-CreateToggle(TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
-CreateToggle(TabFunc, "Wall Check", false, function(s) State.Features.WallCheck = s end)
+CreateHeader(HS.TabFunc, "BỘ LỌC MỤC TIÊU")
+CreateToggle(HS.TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
+CreateToggle(HS.TabFunc, "Wall Check", false, function(s) State.Features.WallCheck = s end)
 
 
-local TabAdmin = CreateTab("Admin")
-CreateHeader(TabAdmin, "ADMIN")
-CreateButton(TabAdmin, "Anti Report", function()
+HS.TabAdmin = CreateTab("Admin")
+CreateHeader(HS.TabAdmin, "ADMIN")
+CreateButton(HS.TabAdmin, "Anti Report", function()
 Notify("Anti Report ON!", "", 3)
 end)
-CreateLabel(TabAdmin, "Anti Report chỉ hiển thị thông báo; không chặn báo cáo thật.", C.Sub)
+CreateLabel(HS.TabAdmin, "Anti Report chỉ hiển thị thông báo; không chặn báo cáo thật.", C.Sub)
 
-local TabAimbot = CreateTab("AimBot")
-CreateSlider(TabAimbot, "Chỉnh FOV định vị", 1, 360, 120, function(v) State.Aimbot.FOV = v end)
-CreateSlider(TabAimbot, "Độ gắt (100 = khóa cứng)", 1, 100, 100, function(v) State.Aimbot.Smooth = v end)
-CreateToggle(TabAimbot, "Aim Lock", false, function(s) State.Aimbot.Lock = s end)
-CreateToggle(TabAimbot, "Nhắm vào Đầu", true, function(s) State.Aimbot.Head = s end)
-CreateToggle(TabAimbot, "Hiện vòng FOV", true, function(s) State.Aimbot.ShowFOV = s end)
+HS.TabAimbot = CreateTab("AimBot")
+CreateSlider(HS.TabAimbot, "Chỉnh FOV định vị", 1, 360, 120, function(v) State.Aimbot.FOV = v end)
+CreateSlider(HS.TabAimbot, "Độ gắt (100 = khóa cứng)", 1, 100, 100, function(v) State.Aimbot.Smooth = v end)
+CreateToggle(HS.TabAimbot, "Aim Lock", false, function(s) State.Aimbot.Lock = s end)
+CreateToggle(HS.TabAimbot, "Nhắm vào Đầu", true, function(s) State.Aimbot.Head = s end)
+CreateToggle(HS.TabAimbot, "Hiện vòng FOV", true, function(s) State.Aimbot.ShowFOV = s end)
 
-local FOVCircle = nil
+HS.FOVCircle = nil
 if HasDrawing then
-FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1
-FOVCircle.Color = C.Accent
-FOVCircle.Filled = false
-FOVCircle.NumSides = 64
-FOVCircle.Visible = false
-Drawings.FOV = FOVCircle
+HS.FOVCircle = Drawing.new("Circle")
+HS.FOVCircle.Thickness = 1
+HS.FOVCircle.Color = C.Accent
+HS.FOVCircle.Filled = false
+HS.FOVCircle.NumSides = 64
+HS.FOVCircle.Visible = false
+Drawings.FOV = HS.FOVCircle
 end
 
-local function IsVisible(part, char)
+function HS.IsVisible(part, char)
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
 params.FilterDescendantsInstances = { LocalPlayer.Character, char }
@@ -850,7 +853,7 @@ local res = Workspace:Raycast(origin, part.Position - origin, params)
 return res == nil
 end
 
-local function GetTarget()
+function HS.GetTarget()
 local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 local best, shortest = nil, State.Aimbot.FOV
 for _, plr in ipairs(Players:GetPlayers()) do
@@ -861,7 +864,7 @@ if part then
 local sp, on = Camera:WorldToViewportPoint(part.Position)
 if on then
 local d = (Vector2.new(sp.X, sp.Y) - center).Magnitude
-if d < shortest and (not State.Features.WallCheck or IsVisible(part, char)) then
+if d < shortest and (not State.Features.WallCheck or HS.IsVisible(part, char)) then
 shortest = d
 best = part
 end
@@ -872,16 +875,16 @@ end
 return best
 end
 
-local function UpdateAimbot()
+function HS.UpdateAimbot()
 local active = State.Features.Apply and State.Features.Aimbot
-if FOVCircle then
-FOVCircle.Radius = State.Aimbot.FOV
-FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-FOVCircle.Visible = active and State.Aimbot.ShowFOV
+if HS.FOVCircle then
+HS.FOVCircle.Radius = State.Aimbot.FOV
+HS.FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+HS.FOVCircle.Visible = active and State.Aimbot.ShowFOV
 end
 if not active or not State.Aimbot.Lock then return end
 
-local target = GetTarget()
+local target = HS.GetTarget()
 if target then
 local goal = CFrame.new(Camera.CFrame.Position, target.Position)
 Camera.CFrame = Camera.CFrame:Lerp(goal, math.clamp(State.Aimbot.Smooth / 100, 0.01, 1))
@@ -891,31 +894,31 @@ end
 RunService:BindToRenderStep("HyperSunAim", Enum.RenderPriority.Camera.Value + 1, function()
 if Unloaded then return end
 Camera = Workspace.CurrentCamera or Camera
-pcall(UpdateAimbot)
+pcall(HS.UpdateAimbot)
 end)
 
-local TabESP = CreateTab("Esp")
-CreateToggle(TabESP, "ESP Skeleton", false, function(s) State.ESP.Skeleton = s end)
-CreateToggle(TabESP, "ESP Box", false, function(s) State.ESP.Box = s end)
-CreateToggle(TabESP, "ESP Count", false, function(s) State.ESP.Count = s end)
-CreateToggle(TabESP, "ESP Line", false, function(s) State.ESP.Line = s end)
-CreateToggle(TabESP, "ESP Name", false, function(s) State.ESP.Name = s end)
-CreateToggle(TabESP, "ESP Health", false, function(s) State.ESP.Health = s end)
-CreateSlider(TabESP, "Khoảng cách tối đa", 50, 5000, 2000, function(v) State.ESP.MaxDist = v end)
+HS.TabESP = CreateTab("Esp")
+CreateToggle(HS.TabESP, "ESP Skeleton", false, function(s) State.ESP.Skeleton = s end)
+CreateToggle(HS.TabESP, "ESP Box", false, function(s) State.ESP.Box = s end)
+CreateToggle(HS.TabESP, "ESP Count", false, function(s) State.ESP.Count = s end)
+CreateToggle(HS.TabESP, "ESP Line", false, function(s) State.ESP.Line = s end)
+CreateToggle(HS.TabESP, "ESP Name", false, function(s) State.ESP.Name = s end)
+CreateToggle(HS.TabESP, "ESP Health", false, function(s) State.ESP.Health = s end)
+CreateSlider(HS.TabESP, "Khoảng cách tối đa", 50, 5000, 2000, function(v) State.ESP.MaxDist = v end)
 
-local R15 = {
+HS.R15 = {
 { "Head", "UpperTorso" }, { "UpperTorso", "LowerTorso" },
 { "UpperTorso", "LeftUpperArm" }, { "LeftUpperArm", "LeftLowerArm" }, { "LeftLowerArm", "LeftHand" },
 { "UpperTorso", "RightUpperArm" }, { "RightUpperArm", "RightLowerArm" }, { "RightLowerArm", "RightHand" },
 { "LowerTorso", "LeftUpperLeg" }, { "LeftUpperLeg", "LeftLowerLeg" }, { "LeftLowerLeg", "LeftFoot" },
 { "LowerTorso", "RightUpperLeg" }, { "RightUpperLeg", "RightLowerLeg" }, { "RightLowerLeg", "RightFoot" },
 }
-local R6 = {
+HS.R6 = {
 { "Head", "Torso" }, { "Torso", "Left Arm" }, { "Torso", "Right Arm" },
 { "Torso", "Left Leg" }, { "Torso", "Right Leg" },
 }
 
-local function NewESP()
+function HS.NewESP()
 local o = {
 Box = Drawing.new("Square"), Name = Drawing.new("Text"), Line = Drawing.new("Line"),
 Health = Drawing.new("Line"), SkeletonLines = {}
@@ -927,7 +930,7 @@ o.Health.Thickness = 3
 return o
 end
 
-local function HideESP(o)
+function HS.HideESP(o)
 o.Box.Visible = false
 o.Name.Visible = false
 o.Line.Visible = false
@@ -935,7 +938,7 @@ o.Health.Visible = false
 for _, l in pairs(o.SkeletonLines) do l.Visible = false end
 end
 
-local function RemoveESP(plr)
+function HS.RemoveESP(plr)
 local o = ESPObjects[plr]
 if not o then return end
 pcall(function() o.Box:Remove() end)
@@ -946,10 +949,10 @@ for _, l in pairs(o.SkeletonLines) do pcall(function() l:Remove() end) end
 ESPObjects[plr] = nil
 end
 
-local function UpdateESP()
+function HS.UpdateESP()
 if not HasDrawing then return end
 if not State.Features.Apply or not State.Features.ESP then
-for _, o in pairs(ESPObjects) do HideESP(o) end
+for _, o in pairs(ESPObjects) do HS.HideESP(o) end
 if Drawings.PlayerCount then Drawings.PlayerCount.Visible = false end
 return
 end
@@ -962,7 +965,7 @@ count = count + 1
 local char = plr.Character
 local hrp = char.HumanoidRootPart
 local hum = char:FindFirstChildOfClass("Humanoid")
-if not ESPObjects[plr] then ESPObjects[plr] = NewESP() end
+if not ESPObjects[plr] then ESPObjects[plr] = HS.NewESP() end
 local esp = ESPObjects[plr]
 local sp, on = Camera:WorldToViewportPoint(hrp.Position)
 local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
@@ -994,7 +997,7 @@ esp.Health.To = Vector2.new(hx, hb - boxSize.Y * pct)
 esp.Health.Color = Color3.new(1 - pct, pct, 0)
 esp.Health.Visible = State.ESP.Health
 
-local list = char:FindFirstChild("UpperTorso") and R15 or R6
+local list = char:FindFirstChild("UpperTorso") and HS.R15 or HS.R6
 for i, pr in ipairs(list) do
 local p1, p2 = char:FindFirstChild(pr[1]), char:FindFirstChild(pr[2])
 local l = esp.SkeletonLines[i]
@@ -1015,10 +1018,10 @@ l.Visible = false
 end
 end
 else
-HideESP(esp)
+HS.HideESP(esp)
 end
 elseif ESPObjects[plr] then
-HideESP(ESPObjects[plr])
+HS.HideESP(ESPObjects[plr])
 end
 end
 end
@@ -1039,77 +1042,77 @@ Drawings.PlayerCount.Visible = false
 end
 end
 
-local TabFly = CreateTab("Fly/Tele")
+HS.TabFly = CreateTab("Fly/Tele")
 
-local FlyFloat = CreateFloat("Fly", 20)
-local UpFloat = CreateFloat("Fly ▲", 62)
-local DownFloat = CreateFloat("Fly ▼", 104)
-local TeleFloat = CreateFloat("Tele Player", 146)
-local MarkFloat = CreateFloat("Tele Mark", 188)
-local SkyFloat = CreateFloat("Tele Sky", 230)
-local UnderFloat = CreateFloat("Under Plan", 272)
-InvisFloat = CreateFloat("Invisibility", 314)
-local TeleWallFloat = CreateFloat("Tele Wall", 356)
-local TeleWall2Float = CreateFloat("Tele Wall 2", 378)
-local LockNVFloat = CreateFloat("LockNV", 400)
-local TeleSky2Float = CreateFloat("TeleSky2", 420)
-local GhostFloat = CreateFloat("Ghost", 462)
-local TeleBack1Float = CreateFloat("TeleBack1", 504)
-local TeleBack2Float = CreateFloat("TeleBack2", 546)
-local SpeedTimeFloat = CreateFloat("Speed Time", 398)
-local FlyUpX2Float = CreateFloat("Fly X2", 440)
-local AutoHealFloat = CreateFloat("Auto Heal", 588)
-local FreezeFloat = CreateFloat("Freeze", 630)
-UpFloat.Hold("Up")
-DownFloat.Hold("Down")
+HS.FlyFloat = HS.CreateFloat("Fly", 20)
+HS.UpFloat = HS.CreateFloat("Fly ▲", 62)
+HS.DownFloat = HS.CreateFloat("Fly ▼", 104)
+HS.TeleFloat = HS.CreateFloat("Tele Player", 146)
+HS.MarkFloat = HS.CreateFloat("Tele Mark", 188)
+HS.SkyFloat = HS.CreateFloat("Tele Sky", 230)
+HS.UnderFloat = HS.CreateFloat("Under Plan", 272)
+HS.InvisFloat = HS.CreateFloat("Invisibility", 314)
+HS.TeleWallFloat = HS.CreateFloat("Tele Wall", 356)
+HS.TeleWall2Float = HS.CreateFloat("Tele Wall 2", 378)
+HS.LockNVFloat = HS.CreateFloat("LockNV", 400)
+HS.TeleSky2Float = HS.CreateFloat("TeleSky2", 420)
+HS.GhostFloat = HS.CreateFloat("Ghost", 462)
+HS.TeleBack1Float = HS.CreateFloat("TeleBack1", 504)
+HS.TeleBack2Float = HS.CreateFloat("TeleBack2", 546)
+HS.SpeedTimeFloat = HS.CreateFloat("Speed Time", 398)
+HS.FlyUpX2Float = HS.CreateFloat("Fly X2", 440)
+HS.AutoHealFloat = HS.CreateFloat("Auto Heal", 588)
+HS.FreezeFloat = HS.CreateFloat("Freeze", 630)
+HS.UpFloat.Hold("Up")
+HS.DownFloat.Hold("Down")
 
-local FlyBV, FlyBG = nil, nil
-local FlyVel = Vector3.zero
+HS.FlyBV, HS.FlyBG = nil, nil
+HS.FlyVel = Vector3.zero
 
-local function DestroyFlyBodies()
-if FlyBV then pcall(function() FlyBV:Destroy() end) end
-if FlyBG then pcall(function() FlyBG:Destroy() end) end
-FlyBV, FlyBG = nil, nil
-FlyVel = Vector3.zero
+function HS.DestroyFlyBodies()
+if HS.FlyBV then pcall(function() HS.FlyBV:Destroy() end) end
+if HS.FlyBG then pcall(function() HS.FlyBG:Destroy() end) end
+HS.FlyBV, HS.FlyBG = nil, nil
+HS.FlyVel = Vector3.zero
 end
 
-local function EnsureFlyBodies(hrp)
-if FlyBV and FlyBG and FlyBV.Parent == hrp and FlyBG.Parent == hrp then return true end
-DestroyFlyBodies()
+function HS.EnsureFlyBodies(hrp)
+if HS.FlyBV and HS.FlyBG and HS.FlyBV.Parent == hrp and HS.FlyBG.Parent == hrp then return true end
+HS.DestroyFlyBodies()
 local ok = pcall(function()
-FlyBV = Instance.new("BodyVelocity")
-FlyBV.Name = "HSFlyBV"
-FlyBV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-FlyBV.P = 1e4
-FlyBV.Velocity = Vector3.zero
-FlyBV.Parent = hrp
-FlyBG = Instance.new("BodyGyro")
-FlyBG.Name = "HSFlyBG"
-FlyBG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-FlyBG.P = 9e4
-FlyBG.D = 500
-FlyBG.CFrame = hrp.CFrame
-FlyBG.Parent = hrp
+HS.FlyBV = Instance.new("BodyVelocity")
+HS.FlyBV.Name = "HSFlyBV"
+HS.FlyBV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+HS.FlyBV.P = 1e4
+HS.FlyBV.Velocity = Vector3.zero
+HS.FlyBV.Parent = hrp
+HS.FlyBG = Instance.new("BodyGyro")
+HS.FlyBG.Name = "HSFlyBG"
+HS.FlyBG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+HS.FlyBG.P = 9e4
+HS.FlyBG.D = 500
+HS.FlyBG.CFrame = hrp.CFrame
+HS.FlyBG.Parent = hrp
 end)
 if not ok then
-DestroyFlyBodies()
+HS.DestroyFlyBodies()
 return false
 end
 return true
 end
 
-local FlyToggle
+;
 
-local function SetFly(on)
+function HS.SetFly(on)
 if on and State.Under.Enabled then
 Notify("Fly", "Hãy tắt Under Plan trước khi bay", 5)
-FlyFloat.SetOn(false)
-if FlyToggle then FlyToggle.Set(false, false) end
+HS.FlyFloat.SetOn(false)
+if HS.FlyToggle then HS.FlyToggle.Set(false, false) end
 return
 end
 State.Memory.FlyEnabled = on and true or false
-FlyFloat.SetOn(State.Memory.FlyEnabled)
-if FlyToggle then FlyToggle.Set(State.Memory.FlyEnabled, false) end
+HS.FlyFloat.SetOn(State.Memory.FlyEnabled)
+if HS.FlyToggle then HS.FlyToggle.Set(State.Memory.FlyEnabled, false) end
 local hrp, hum = GetHRP()
 if on then
 local lift = math.max(State.Memory.FlyHeight, 0)
@@ -1124,21 +1127,21 @@ end
 else
 State.Memory.Up = false
 State.Memory.Down = false
-DestroyFlyBodies()
+HS.DestroyFlyBodies()
 if hrp then pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end) end
 if hum then hum.PlatformStand = false end
 end
 end
 
-local function UpdateFly(dt, hrp, hum)
+function HS.UpdateFly(dt, hrp, hum)
 if not State.Memory.FlyEnabled then
-if FlyBV or FlyBG then DestroyFlyBodies() end
+if HS.FlyBV or HS.FlyBG then HS.DestroyFlyBodies() end
 return
 end
 if not hrp or not hum or hum.Health <= 0 then return end
 
 hum.PlatformStand = true
-local usedBodies = EnsureFlyBodies(hrp)
+local usedBodies = HS.EnsureFlyBodies(hrp)
 
 local cam = Camera.CFrame
 local look = cam.LookVector
@@ -1165,43 +1168,43 @@ dir = dir + Vector3.new(0, vert, 0)
 if dir.Magnitude > 1 then dir = dir.Unit end
 
 local target = dir * State.Memory.FlySpeed
-FlyVel = FlyVel:Lerp(target, 1 - math.exp(-dt * 10))
+HS.FlyVel = HS.FlyVel:Lerp(target, 1 - math.exp(-dt * 10))
 
 if usedBodies then
-FlyBV.Velocity = FlyVel
-FlyBG.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + flatLook)
+HS.FlyBV.Velocity = HS.FlyVel
+HS.FlyBG.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + flatLook)
 else
-hrp.AssemblyLinearVelocity = FlyVel
+hrp.AssemblyLinearVelocity = HS.FlyVel
 hrp.AssemblyAngularVelocity = Vector3.zero
 end
 end
 
-CreateHeader(TabFly, "FLY")
-FlyToggle = CreateToggle(TabFly, "Fly Normal", false, function(s) SetFly(s) end)
-CreateToggle(TabFly, "Hiện nút nổi Fly", false, function(s)
-FlyFloat.Show(s)
-UpFloat.Show(s)
-DownFloat.Show(s)
+CreateHeader(HS.TabFly, "FLY")
+HS.FlyToggle = CreateToggle(HS.TabFly, "Fly Normal", false, function(s) HS.SetFly(s) end)
+CreateToggle(HS.TabFly, "Hiện nút nổi Fly", false, function(s)
+HS.FlyFloat.Show(s)
+HS.UpFloat.Show(s)
+HS.DownFloat.Show(s)
 end)
-CreateSlider(TabFly, "Nhấc lên khi bật Fly (0 = tắt)", 0, 300, 5, function(v) State.Memory.FlyHeight = v end)
-CreateSlider(TabFly, "Tốc độ Fly", 1, 500, 50, function(v) State.Memory.FlySpeed = v end)
-FlyFloat.OnTap(function() SetFly(not State.Memory.FlyEnabled) end)
+CreateSlider(HS.TabFly, "Nhấc lên khi bật Fly (0 = tắt)", 0, 300, 5, function(v) State.Memory.FlyHeight = v end)
+CreateSlider(HS.TabFly, "Tốc độ Fly", 1, 500, 50, function(v) State.Memory.FlySpeed = v end)
+HS.FlyFloat.OnTap(function() HS.SetFly(not State.Memory.FlyEnabled) end)
 
-CreateHeader(TabFly, "TELE PLAYER")
-local TeleTarget = nil
-local DropdownBtn = CreateButton(TabFly, "Chọn Player")
-local dropFrame = Create("Frame", { Size = UDim2.new(1, 0, 0, 110), BackgroundColor3 = C.Item, BackgroundTransparency = 0.2, Visible = false }, TabFly)
-Create("UICorner", { CornerRadius = UDim.new(0, 7) }, dropFrame)
-local dropScroll = Create("ScrollingFrame", {
+CreateHeader(HS.TabFly, "TELE PLAYER")
+HS.TeleTarget = nil
+HS.DropdownBtn = CreateButton(HS.TabFly, "Chọn Player")
+HS.dropFrame = Create("Frame", { Size = UDim2.new(1, 0, 0, 110), BackgroundColor3 = C.Item, BackgroundTransparency = 0.2, Visible = false }, HS.TabFly)
+Create("UICorner", { CornerRadius = UDim.new(0, 7) }, HS.dropFrame)
+HS.dropScroll = Create("ScrollingFrame", {
 Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2,
 CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
-}, dropFrame)
-Create("UIListLayout", { Padding = UDim.new(0, 2) }, dropScroll)
-DropdownBtn.MouseButton1Click:Connect(function() dropFrame.Visible = not dropFrame.Visible end)
+}, HS.dropFrame)
+Create("UIListLayout", { Padding = UDim.new(0, 2) }, HS.dropScroll)
+HS.DropdownBtn.MouseButton1Click:Connect(function() HS.dropFrame.Visible = not HS.dropFrame.Visible end)
 
-local function refreshPlayers()
+function HS.refreshPlayers()
 if Unloaded then return end
-for _, v in ipairs(dropScroll:GetChildren()) do
+for _, v in ipairs(HS.dropScroll:GetChildren()) do
 if v:IsA("TextButton") then v:Destroy() end
 end
 for _, p in ipairs(Players:GetPlayers()) do
@@ -1209,97 +1212,97 @@ if p ~= LocalPlayer then
 local pBtn = Create("TextButton", {
 Size = UDim2.new(1, -4, 0, 28), BackgroundColor3 = C.Panel, Text = p.Name,
 TextColor3 = C.Text, Font = FONT_N, TextSize = 13, AutoButtonColor = false
-}, dropScroll)
+}, HS.dropScroll)
 Create("UICorner", { CornerRadius = UDim.new(0, 5) }, pBtn)
 pBtn.MouseButton1Click:Connect(function()
 Click()
-TeleTarget = p
-DropdownBtn.Text = "Target: " .. p.Name
-dropFrame.Visible = false
-TeleFloat.Show(true)
+HS.TeleTarget = p
+HS.DropdownBtn.Text = "Target: " .. p.Name
+HS.dropFrame.Visible = false
+HS.TeleFloat.Show(true)
 end)
 end
 end
 end
-refreshPlayers()
-Connections[#Connections + 1] = Players.PlayerAdded:Connect(refreshPlayers)
+HS.refreshPlayers()
+Connections[#Connections + 1] = Players.PlayerAdded:Connect(HS.refreshPlayers)
 Connections[#Connections + 1] = Players.PlayerRemoving:Connect(function(p)
-if TeleTarget == p then
-TeleTarget = nil
-DropdownBtn.Text = "Chọn Player"
-TeleFloat.Show(false)
+if HS.TeleTarget == p then
+HS.TeleTarget = nil
+HS.DropdownBtn.Text = "Chọn Player"
+HS.TeleFloat.Show(false)
 end
-task.defer(refreshPlayers)
+task.defer(HS.refreshPlayers)
 end)
 
-TeleFloat.OnTap(function()
-TeleFloat.Flash()
+HS.TeleFloat.OnTap(function()
+HS.TeleFloat.Flash()
 local hrp = GetHRP()
-if TeleTarget and hrp and TeleTarget.Character and TeleTarget.Character:FindFirstChild("HumanoidRootPart") then
-hrp.CFrame = TeleTarget.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+if HS.TeleTarget and hrp and HS.TeleTarget.Character and HS.TeleTarget.Character:FindFirstChild("HumanoidRootPart") then
+hrp.CFrame = HS.TeleTarget.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
 else
 Notify("Tele Player", "Không tìm thấy mục tiêu", 5)
 end
 end)
 
-CreateHeader(TabFly, "TELE MARK")
-local MarkedPos = nil
-local MapGui = Create("Frame", {
+CreateHeader(HS.TabFly, "TELE MARK")
+HS.MarkedPos = nil
+HS.MapGui = Create("Frame", {
 Size = UDim2.new(0, 360, 0, 270), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
 BackgroundColor3 = C.Panel, Visible = false, ZIndex = 10
 }, ScreenGui)
-Create("UICorner", { CornerRadius = UDim.new(0, 10) }, MapGui)
-Create("UIStroke", { Color = C.Accent }, MapGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 10) }, HS.MapGui)
+Create("UIStroke", { Color = C.Accent }, HS.MapGui)
 Create("TextLabel", {
 Size = UDim2.new(1, -40, 0, 30), Position = UDim2.new(0, 10, 0, 0), BackgroundTransparency = 1,
 Text = "Chạm để đánh dấu (vùng 1000 stud quanh bạn)", TextColor3 = C.Text, Font = FONT_N, TextSize = 12,
 TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 10
-}, MapGui)
-local MapClose = Create("TextButton", {
+}, HS.MapGui)
+HS.MapClose = Create("TextButton", {
 Size = UDim2.new(0, 30, 0, 30), Position = UDim2.new(1, -30, 0, 0), Text = "X",
 TextColor3 = C.Accent, Font = FONT_B, TextSize = 14, BackgroundTransparency = 1, ZIndex = 11
-}, MapGui)
-MapClose.MouseButton1Click:Connect(function()
+}, HS.MapGui)
+HS.MapClose.MouseButton1Click:Connect(function()
 Click()
-MapGui.Visible = false
+HS.MapGui.Visible = false
 end)
-local MapArea = Create("TextButton", {
+HS.MapArea = Create("TextButton", {
 Size = UDim2.new(1, -20, 1, -40), Position = UDim2.new(0, 10, 0, 32),
 BackgroundColor3 = Color3.fromRGB(30, 30, 30), Text = "", AutoButtonColor = false, ZIndex = 10
-}, MapGui)
-Create("UICorner", { CornerRadius = UDim.new(0, 6) }, MapArea)
-MapArea.InputBegan:Connect(function(input)
+}, HS.MapGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 6) }, HS.MapArea)
+HS.MapArea.InputBegan:Connect(function(input)
 if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
 local hrp = GetHRP()
 if not hrp then return end
 Click()
-local relX = (input.Position.X - MapArea.AbsolutePosition.X) / math.max(MapArea.AbsoluteSize.X, 1)
-local relY = (input.Position.Y - MapArea.AbsolutePosition.Y) / math.max(MapArea.AbsoluteSize.Y, 1)
+local relX = (input.Position.X - HS.MapArea.AbsolutePosition.X) / math.max(HS.MapArea.AbsoluteSize.X, 1)
+local relY = (input.Position.Y - HS.MapArea.AbsolutePosition.Y) / math.max(HS.MapArea.AbsoluteSize.Y, 1)
 local o = hrp.Position
-MarkedPos = Vector3.new(o.X + (relX - 0.5) * 1000, o.Y, o.Z + (relY - 0.5) * 1000)
+HS.MarkedPos = Vector3.new(o.X + (relX - 0.5) * 1000, o.Y, o.Z + (relY - 0.5) * 1000)
 Notify("Tele Mark", "Đã đánh dấu vị trí!", 5)
-MapGui.Visible = false
-MarkFloat.Show(true)
+HS.MapGui.Visible = false
+HS.MarkFloat.Show(true)
 end)
-CreateButton(TabFly, "Mở Bản Đồ (Tele Mark)", function() MapGui.Visible = true end)
+CreateButton(HS.TabFly, "Mở Bản Đồ (Tele Mark)", function() HS.MapGui.Visible = true end)
 
-MarkFloat.OnTap(function()
-MarkFloat.Flash()
+HS.MarkFloat.OnTap(function()
+HS.MarkFloat.Flash()
 local hrp = GetHRP()
-if MarkedPos and hrp then
-hrp.CFrame = CFrame.new(MarkedPos + Vector3.new(0, 3, 0))
+if HS.MarkedPos and hrp then
+hrp.CFrame = CFrame.new(HS.MarkedPos + Vector3.new(0, 3, 0))
 end
 end)
 
-CreateHeader(TabFly, "TELE SKY")
-CreateSlider(TabFly, "Độ cao Tele Sky", 1, 1000, 100, function(v) State.Memory.TeleSkyHeight = v end)
-CreateToggle(TabFly, "Bật Tele Sky", false, function(s) SkyFloat.Show(s) end)
+CreateHeader(HS.TabFly, "TELE SKY")
+CreateSlider(HS.TabFly, "Độ cao Tele Sky", 1, 1000, 100, function(v) State.Memory.TeleSkyHeight = v end)
+CreateToggle(HS.TabFly, "Bật Tele Sky", false, function(s) HS.SkyFloat.Show(s) end)
 
-SkyFloat.OnTap(function()
+HS.SkyFloat.OnTap(function()
 local hrp = GetHRP()
 if not hrp then return end
 State.Memory.InSky = not State.Memory.InSky
-SkyFloat.SetOn(State.Memory.InSky)
+HS.SkyFloat.SetOn(State.Memory.InSky)
 if State.Memory.InSky then
 State.Memory.OldPos = hrp.Position
 hrp.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y + State.Memory.TeleSkyHeight, hrp.Position.Z)
@@ -1313,22 +1316,22 @@ if dest then hrp.CFrame = CFrame.new(dest) end
 end
 end)
 
-local TabChams = CreateTab("Chams")
+HS.TabChams = CreateTab("Chams")
 
-local function RemoveCham(plr)
-local h = ChamObjs[plr]
+function HS.RemoveCham(plr)
+local h = HS.ChamObjs[plr]
 if h then pcall(function() h:Destroy() end) end
-ChamObjs[plr] = nil
+HS.ChamObjs[plr] = nil
 end
 
-local function ClearChams()
-for plr in pairs(ChamObjs) do RemoveCham(plr) end
+function HS.ClearChams()
+for plr in pairs(HS.ChamObjs) do HS.RemoveCham(plr) end
 end
 
-local function UpdateChams()
+function HS.UpdateChams()
 local mode = State.Chams.Mode
 if mode == "None" then
-if next(ChamObjs) then ClearChams() end
+if next(HS.ChamObjs) then HS.ClearChams() end
 return
 end
 local col
@@ -1342,7 +1345,7 @@ end
 for _, plr in ipairs(Players:GetPlayers()) do
 if plr ~= LocalPlayer then
 local char = plr.Character
-local h = ChamObjs[plr]
+local h = HS.ChamObjs[plr]
 if char and char:FindFirstChild("HumanoidRootPart") then
 if not h or not h.Parent then
 h = Instance.new("Highlight")
@@ -1352,27 +1355,27 @@ h.FillTransparency = 0.4
 h.OutlineColor = Color3.new(1, 1, 1)
 h.OutlineTransparency = 0
 h.Parent = Root
-ChamObjs[plr] = h
+HS.ChamObjs[plr] = h
 end
 if h.Adornee ~= char then h.Adornee = char end
 h.FillColor = col
 elseif h then
-RemoveCham(plr)
+HS.RemoveCham(plr)
 end
 end
 end
 end
 
 Connections[#Connections + 1] = Players.PlayerRemoving:Connect(function(p)
-RemoveESP(p)
-RemoveCham(p)
+HS.RemoveESP(p)
+HS.RemoveCham(p)
 end)
 
-local ChamToggles = {}
-local function ChamSwitch(name)
+HS.ChamToggles = {}
+function HS.ChamSwitch(name)
 return function(s)
 if s then
-for n, t in pairs(ChamToggles) do
+for n, t in pairs(HS.ChamToggles) do
 if n ~= name then t.Set(false, false) end
 end
 State.Chams.Mode = name
@@ -1381,73 +1384,73 @@ State.Chams.Mode = "None"
 end
 end
 end
-ChamToggles.Red = CreateToggle(TabChams, "Red Chams", false, ChamSwitch("Red"))
-ChamToggles.Blue = CreateToggle(TabChams, "Blue Chams", false, ChamSwitch("Blue"))
-ChamToggles.Rainbow = CreateToggle(TabChams, "Rainbow Chams", false, ChamSwitch("Rainbow"))
+HS.ChamToggles.Red = CreateToggle(HS.TabChams, "Red Chams", false, HS.ChamSwitch("Red"))
+HS.ChamToggles.Blue = CreateToggle(HS.TabChams, "Blue Chams", false, HS.ChamSwitch("Blue"))
+HS.ChamToggles.Rainbow = CreateToggle(HS.TabChams, "Rainbow Chams", false, HS.ChamSwitch("Rainbow"))
 
-local SpinPlayer = { Enabled = false, Speed = 5, BaseRotation = nil, Angle = 0 }
-local function SetSpinPlayer(on)
+HS.SpinPlayer = { Enabled = false, Speed = 5, BaseRotation = nil, Angle = 0 }
+function HS.SetSpinPlayer(on)
     local hrp = GetHRP()
     if on then
         if not hrp then
             Notify("-180° Player", "Không tìm thấy nhân vật", 3)
-            SpinPlayer.Enabled = false
+            HS.SpinPlayer.Enabled = false
             return
         end
-        SpinPlayer.BaseRotation = hrp.CFrame.Rotation
+        HS.SpinPlayer.BaseRotation = hrp.CFrame.Rotation
         local _, yaw = hrp.CFrame:ToEulerAnglesYXZ()
-        SpinPlayer.Angle = yaw
-        SpinPlayer.Enabled = true
+        HS.SpinPlayer.Angle = yaw
+        HS.SpinPlayer.Enabled = true
         Notify("-180° Player", "Đã bật xoay nhân vật", 3)
     else
-        SpinPlayer.Enabled = false
-        if hrp and SpinPlayer.BaseRotation then
+        HS.SpinPlayer.Enabled = false
+        if hrp and HS.SpinPlayer.BaseRotation then
             pcall(function()
-                hrp.CFrame = CFrame.new(hrp.Position) * SpinPlayer.BaseRotation
+                hrp.CFrame = CFrame.new(hrp.Position) * HS.SpinPlayer.BaseRotation
             end)
         end
-        SpinPlayer.BaseRotation = nil
+        HS.SpinPlayer.BaseRotation = nil
         Notify("-180° Player", "Đã tắt; khôi phục hướng ban đầu", 3)
     end
 end
 
-local TabLoc = CreateTab("Location")
-CreateHeader(TabLoc, "INVISIBILITY")
-InvisToggle = CreateToggle(TabLoc, "Invisibility · Ẩn nhân vật (cục bộ)", false, function(on)
-Invis.Set(on)
+HS.TabLoc = CreateTab("Location")
+CreateHeader(HS.TabLoc, "INVISIBILITY")
+HS.InvisToggle = CreateToggle(HS.TabLoc, "Invisibility · Ẩn nhân vật (cục bộ)", false, function(on)
+HS.Invis.Set(on)
 end)
-CreateToggle(TabLoc, "Hiện nút nổi Invisibility", false, function(on)
-if InvisFloat then InvisFloat.Show(on) end
+CreateToggle(HS.TabLoc, "Hiện nút nổi Invisibility", false, function(on)
+if HS.InvisFloat then HS.InvisFloat.Show(on) end
 end)
-CreateLabel(TabLoc, "Chỉ ẩn trên màn hình của bạn; không làm nhân vật vô hình với người chơi khác trên máy chủ.")
-CreateHeader(TabLoc, "-180° PLAYER · XOAY NHÂN VẬT")
-CreateLabel(TabLoc, "Xoay liên tục quanh trục đứng. Tắt để khôi phục hướng lúc bật.", C.Sub)
-CreateSlider(TabLoc, "Tốc độ xoay (1–20)", 1, 20, 5, function(v)
-    SpinPlayer.Speed = math.clamp(v, 1, 20)
+CreateLabel(HS.TabLoc, "Chỉ ẩn trên màn hình của bạn; không làm nhân vật vô hình với người chơi khác trên máy chủ.")
+CreateHeader(HS.TabLoc, "-180° PLAYER · XOAY NHÂN VẬT")
+CreateLabel(HS.TabLoc, "Xoay liên tục quanh trục đứng. Tắt để khôi phục hướng lúc bật.", C.Sub)
+CreateSlider(HS.TabLoc, "Tốc độ xoay (1–20)", 1, 20, 5, function(v)
+    HS.SpinPlayer.Speed = math.clamp(v, 1, 20)
 end)
-CreateToggle(TabLoc, "Bật -180° Player", false, function(on)
-    SetSpinPlayer(on)
+CreateToggle(HS.TabLoc, "Bật -180° Player", false, function(on)
+    HS.SetSpinPlayer(on)
 end)
-InvisFloat.OnTap(function()
-Invis.Set(not Invis.Enabled)
+HS.InvisFloat.OnTap(function()
+HS.Invis.Set(not HS.Invis.Enabled)
 end)
 
-local TabMem = CreateTab("Memory")
-CreateHeader(TabMem, "DI CHUYỂN")
+HS.TabMem = CreateTab("Memory")
+CreateHeader(HS.TabMem, "DI CHUYỂN")
 
 -- Auto Heal: local health restoration loop. Server-authoritative games may overwrite it.
-local AutoHealEnabled = false
-local AutoHealConnection = nil
-local function SetAutoHeal(on)
-    AutoHealEnabled = on and true or false
-    AutoHealFloat.SetOn(AutoHealEnabled)
-    if AutoHealConnection then
-        pcall(function() AutoHealConnection:Disconnect() end)
-        AutoHealConnection = nil
+HS.AutoHealEnabled = false
+HS.AutoHealConnection = nil
+function HS.SetAutoHeal(on)
+    HS.AutoHealEnabled = on and true or false
+    HS.AutoHealFloat.SetOn(HS.AutoHealEnabled)
+    if HS.AutoHealConnection then
+        pcall(function() HS.AutoHealConnection:Disconnect() end)
+        HS.AutoHealConnection = nil
     end
-    if AutoHealEnabled then
-        AutoHealConnection = RunService.Heartbeat:Connect(function()
-            if not AutoHealEnabled or Unloaded then return end
+    if HS.AutoHealEnabled then
+        HS.AutoHealConnection = RunService.Heartbeat:Connect(function()
+            if not HS.AutoHealEnabled or Unloaded then return end
             local char = LocalPlayer.Character
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             if hum and hum.Health > 0 and hum.Health < hum.MaxHealth then
@@ -1459,28 +1462,28 @@ local function SetAutoHeal(on)
         Notify("Auto Heal", "Đã tắt", 3)
     end
 end
-AutoHealFloat.OnTap(function() SetAutoHeal(not AutoHealEnabled) end)
-CreateToggle(TabMem, "Hiện nút nổi Auto Heal", false, function(on) AutoHealFloat.Show(on) end)
-CreateLabel(TabMem, "Auto Heal chỉ thử đặt máu tối đa ở phía client; máy chủ có thể ghi đè.", C.Sub)
+HS.AutoHealFloat.OnTap(function() HS.SetAutoHeal(not HS.AutoHealEnabled) end)
+CreateToggle(HS.TabMem, "Hiện nút nổi Auto Heal", false, function(on) HS.AutoHealFloat.Show(on) end)
+CreateLabel(HS.TabMem, "Auto Heal chỉ thử đặt máu tối đa ở phía client; máy chủ có thể ghi đè.", C.Sub)
 
 -- Freeze marker: highlights the player nearest the screen center locally. It does not immobilize other players.
-local FreezeEnabled = false
-local FreezeHighlight = nil
-local FreezeTarget = nil
-local FreezeConnection = nil
-local function ClearFreezeMarker()
-    if FreezeHighlight then pcall(function() FreezeHighlight:Destroy() end) end
-    FreezeHighlight = nil
-    FreezeTarget = nil
+HS.FreezeEnabled = false
+HS.FreezeHighlight = nil
+HS.FreezeTarget = nil
+HS.FreezeConnection = nil
+function HS.ClearFreezeMarker()
+    if HS.FreezeHighlight then pcall(function() HS.FreezeHighlight:Destroy() end) end
+    HS.FreezeHighlight = nil
+    HS.FreezeTarget = nil
 end
-local function SetFreezeMarker(on)
-    FreezeEnabled = on and true or false
-    FreezeFloat.SetOn(FreezeEnabled)
-    if FreezeConnection then pcall(function() FreezeConnection:Disconnect() end); FreezeConnection = nil end
-    ClearFreezeMarker()
-    if FreezeEnabled then
-        FreezeConnection = RunService.RenderStepped:Connect(function()
-            if not FreezeEnabled or Unloaded then return end
+function HS.SetFreezeMarker(on)
+    HS.FreezeEnabled = on and true or false
+    HS.FreezeFloat.SetOn(HS.FreezeEnabled)
+    if HS.FreezeConnection then pcall(function() HS.FreezeConnection:Disconnect() end); HS.FreezeConnection = nil end
+    HS.ClearFreezeMarker()
+    if HS.FreezeEnabled then
+        HS.FreezeConnection = RunService.RenderStepped:Connect(function()
+            if not HS.FreezeEnabled or Unloaded then return end
             local cam = Workspace.CurrentCamera
             if not cam then return end
             local vp = cam.ViewportSize
@@ -1499,9 +1502,9 @@ local function SetFreezeMarker(on)
                     end
                 end
             end
-            if best ~= FreezeTarget then
-                ClearFreezeMarker()
-                FreezeTarget = best
+            if best ~= HS.FreezeTarget then
+                HS.ClearFreezeMarker()
+                HS.FreezeTarget = best
                 if best and best.Character then
                     local ok, h = pcall(function()
                         local hl = Instance.new("Highlight")
@@ -1514,7 +1517,7 @@ local function SetFreezeMarker(on)
                         hl.Parent = ScreenGui
                         return hl
                     end)
-                    if ok then FreezeHighlight = h end
+                    if ok then HS.FreezeHighlight = h end
                 end
             end
         end)
@@ -1523,41 +1526,41 @@ local function SetFreezeMarker(on)
         Notify("Freeze", "Đã tắt đánh dấu mục tiêu", 3)
     end
 end
-FreezeFloat.OnTap(function() SetFreezeMarker(not FreezeEnabled) end)
-CreateToggle(TabMem, "Hiện nút nổi Freeze", false, function(on) FreezeFloat.Show(on) end)
-CreateLabel(TabMem, "Freeze chỉ đánh dấu mục tiêu cục bộ. Đóng băng người chơi khác cần quyền xử lý phía máy chủ của game.", C.Sub)
+HS.FreezeFloat.OnTap(function() HS.SetFreezeMarker(not HS.FreezeEnabled) end)
+CreateToggle(HS.TabMem, "Hiện nút nổi Freeze", false, function(on) HS.FreezeFloat.Show(on) end)
+CreateLabel(HS.TabMem, "Freeze chỉ đánh dấu mục tiêu cục bộ. Đóng băng người chơi khác cần quyền xử lý phía máy chủ của game.", C.Sub)
 
 -- TeleBack: save a location, then return to it with a separate floating button.
-local TeleBackSavedCFrame = nil
-local function SaveTeleBack()
+HS.TeleBackSavedCFrame = nil
+function HS.SaveTeleBack()
     local hrp = GetHRP()
     if not hrp then Notify("TeleBack1", "Không tìm thấy nhân vật", 3); return end
-    TeleBackSavedCFrame = hrp.CFrame
+    HS.TeleBackSavedCFrame = hrp.CFrame
     Notify("TeleBack1", "Đã lưu vị trí hiện tại", 3)
-    TeleBack1Float.Flash()
+    HS.TeleBack1Float.Flash()
 end
-local function ReturnTeleBack()
+function HS.ReturnTeleBack()
     local hrp = GetHRP()
     if not hrp then Notify("TeleBack2", "Không tìm thấy nhân vật", 3); return end
-    if not TeleBackSavedCFrame then Notify("TeleBack2", "Hãy lưu vị trí bằng TeleBack1 trước", 4); return end
-    hrp.CFrame = TeleBackSavedCFrame
+    if not HS.TeleBackSavedCFrame then Notify("TeleBack2", "Hãy lưu vị trí bằng TeleBack1 trước", 4); return end
+    hrp.CFrame = HS.TeleBackSavedCFrame
     hrp.AssemblyLinearVelocity = Vector3.zero
     Notify("TeleBack2", "Đã trở về vị trí đã lưu", 3)
-    TeleBack2Float.Flash()
+    HS.TeleBack2Float.Flash()
 end
 
 -- Ghost clone mode: client-side clone is controllable locally; server-side invisibility is not guaranteed.
-local GhostEnabled = false
-local GhostRealCharacter, GhostClone, GhostRoot, GhostHumanoid
-local GhostRealRootCFrame, GhostRealAnchored, GhostRealAutoRotate
-local GhostCameraSubject, GhostCameraType
-local GhostControls
-local GhostMoveConnection
-local GhostSavedParts = {}
-local GhostSavedDecals = {}
+HS.GhostEnabled = false
+;
+;
+;
+;
+;
+HS.GhostSavedParts = {}
+HS.GhostSavedDecals = {}
 
-local function GhostRestoreRealVisuals()
-    for inst, saved in pairs(GhostSavedParts) do
+function HS.GhostRestoreRealVisuals()
+    for inst, saved in pairs(HS.GhostSavedParts) do
         if inst and inst.Parent then
             pcall(function()
                 inst.LocalTransparencyModifier = saved.LocalTransparencyModifier or 0
@@ -1565,23 +1568,23 @@ local function GhostRestoreRealVisuals()
             end)
         end
     end
-    for inst, transparency in pairs(GhostSavedDecals) do
+    for inst, transparency in pairs(HS.GhostSavedDecals) do
         if inst and inst.Parent then pcall(function() inst.Transparency = transparency end) end
     end
-    ClearTableCompat(GhostSavedParts)
-    ClearTableCompat(GhostSavedDecals)
+    ClearTableCompat(HS.GhostSavedParts)
+    ClearTableCompat(HS.GhostSavedDecals)
 end
 
-local function SetGhost(on)
+function HS.SetGhost(on)
     on = on and true or false
-    if on == GhostEnabled then return end
+    if on == HS.GhostEnabled then return end
     if on then
         local real = LocalPlayer.Character
         local realRoot = real and real:FindFirstChild("HumanoidRootPart")
         local realHum = real and real:FindFirstChildOfClass("Humanoid")
         if not real or not realRoot or not realHum then
             Notify("Ghost", "Không tìm thấy nhân vật hợp lệ", 4)
-            GhostFloat.SetOn(false)
+            HS.GhostFloat.SetOn(false)
             return
         end
         local oldArchivable = real.Archivable
@@ -1594,7 +1597,7 @@ local function SetGhost(on)
         real.Archivable = oldArchivable
         if not ok or not clone then
             Notify("Ghost", "Không thể tạo bản sao nhân vật", 5)
-            GhostFloat.SetOn(false)
+            HS.GhostFloat.SetOn(false)
             return
         end
         clone.Name = "HyperSun_GhostClone"
@@ -1613,25 +1616,25 @@ local function SetGhost(on)
         if not cloneRoot or not cloneHum then
             clone:Destroy()
             Notify("Ghost", "Bản sao thiếu Humanoid hoặc HumanoidRootPart", 4)
-            GhostFloat.SetOn(false)
+            HS.GhostFloat.SetOn(false)
             return
         end
-        GhostRealCharacter = real
-        GhostClone = clone
-        GhostRoot = realRoot
-        GhostHumanoid = realHum
-        GhostRealRootCFrame = realRoot.CFrame
-        GhostRealAnchored = realRoot.Anchored
-        GhostRealAutoRotate = realHum.AutoRotate
+        HS.GhostRealCharacter = real
+        HS.GhostClone = clone
+        HS.GhostRoot = realRoot
+        HS.GhostHumanoid = realHum
+        HS.GhostRealRootCFrame = realRoot.CFrame
+        HS.GhostRealAnchored = realRoot.Anchored
+        HS.GhostRealAutoRotate = realHum.AutoRotate
         local camera = Workspace.CurrentCamera
-        GhostCameraSubject = camera and camera.CameraSubject
-        GhostCameraType = camera and camera.CameraType
+        HS.GhostCameraSubject = camera and camera.CameraSubject
+        HS.GhostCameraType = camera and camera.CameraType
         for _, inst in ipairs(real:GetDescendants()) do
             if inst:IsA("BasePart") then
-                GhostSavedParts[inst] = {Transparency = inst.Transparency, LocalTransparencyModifier = inst.LocalTransparencyModifier}
+                HS.GhostSavedParts[inst] = {Transparency = inst.Transparency, LocalTransparencyModifier = inst.LocalTransparencyModifier}
                 inst.LocalTransparencyModifier = 1
             elseif inst:IsA("Decal") or inst:IsA("Texture") then
-                GhostSavedDecals[inst] = inst.Transparency
+                HS.GhostSavedDecals[inst] = inst.Transparency
                 inst.Transparency = 1
             end
         end
@@ -1639,26 +1642,26 @@ local function SetGhost(on)
         realHum.AutoRotate = false
         clone:PivotTo(realRoot.CFrame)
         clone.Parent = Workspace
-        GhostClone = clone
-        GhostRoot = cloneRoot
-        GhostHumanoid = cloneHum
+        HS.GhostClone = clone
+        HS.GhostRoot = cloneRoot
+        HS.GhostHumanoid = cloneHum
         cloneHum.WalkSpeed = realHum.WalkSpeed
         cloneHum.JumpPower = 0
         cloneHum.JumpHeight = 0
         cloneHum.AutoRotate = true
         pcall(function() cloneHum:UnequipTools() end)
-        GhostEnabled = true
+        HS.GhostEnabled = true
         -- Read Roblox's existing touch joystick/keyboard movement vector and drive only the clone.
         pcall(function()
             local ps = LocalPlayer:WaitForChild("PlayerScripts", 3)
             local pm = ps and require(ps:WaitForChild("PlayerModule", 3))
-            GhostControls = pm and pm:GetControls()
+            HS.GhostControls = pm and pm:GetControls()
         end)
-        GhostMoveConnection = RunService.RenderStepped:Connect(function()
-            if not GhostEnabled or not GhostClone or not GhostClone.Parent or not GhostHumanoid then return end
+        HS.GhostMoveConnection = RunService.RenderStepped:Connect(function()
+            if not HS.GhostEnabled or not HS.GhostClone or not HS.GhostClone.Parent or not HS.GhostHumanoid then return end
             local move = Vector3.zero
             pcall(function()
-                if GhostControls then move = GhostControls:GetMoveVector() end
+                if HS.GhostControls then move = HS.GhostControls:GetMoveVector() end
             end)
             local cameraNow = Workspace.CurrentCamera
             if cameraNow then
@@ -1669,86 +1672,86 @@ local function SetGhost(on)
                 if forwardFlat.Magnitude > 0 then forwardFlat = forwardFlat.Unit end
                 if rightFlat.Magnitude > 0 then rightFlat = rightFlat.Unit end
                 local worldMove = rightFlat * move.X + forwardFlat * -move.Z
-                GhostHumanoid:Move(worldMove, false)
+                HS.GhostHumanoid:Move(worldMove, false)
             end
-            GhostHumanoid.Jump = false
+            HS.GhostHumanoid.Jump = false
         end)
         if camera then
             camera.CameraType = Enum.CameraType.Custom
             camera.CameraSubject = cloneHum
         end
-        GhostFloat.SetOn(true)
+        HS.GhostFloat.SetOn(true)
         Notify("Ghost", "Ghost phân thân đã bật; chỉ di chuyển bản sao ở phía client", 5)
     else
-        GhostEnabled = false
-        if GhostMoveConnection then pcall(function() GhostMoveConnection:Disconnect() end); GhostMoveConnection = nil end
-        local clonePos = GhostRoot and GhostRoot.Parent and GhostRoot.CFrame or GhostRealRootCFrame
-        if GhostRealCharacter and GhostRealCharacter.Parent then
-            local realRoot = GhostRealCharacter:FindFirstChild("HumanoidRootPart")
-            local realHum = GhostRealCharacter:FindFirstChildOfClass("Humanoid")
+        HS.GhostEnabled = false
+        if HS.GhostMoveConnection then pcall(function() HS.GhostMoveConnection:Disconnect() end); HS.GhostMoveConnection = nil end
+        local clonePos = HS.GhostRoot and HS.GhostRoot.Parent and HS.GhostRoot.CFrame or HS.GhostRealRootCFrame
+        if HS.GhostRealCharacter and HS.GhostRealCharacter.Parent then
+            local realRoot = HS.GhostRealCharacter:FindFirstChild("HumanoidRootPart")
+            local realHum = HS.GhostRealCharacter:FindFirstChildOfClass("Humanoid")
             if realRoot then
-                realRoot.Anchored = GhostRealAnchored or false
+                realRoot.Anchored = HS.GhostRealAnchored or false
                 if clonePos then realRoot.CFrame = clonePos end
                 pcall(function() realRoot.AssemblyLinearVelocity = Vector3.zero end)
             end
-            if realHum and GhostRealAutoRotate ~= nil then realHum.AutoRotate = GhostRealAutoRotate end
+            if realHum and HS.GhostRealAutoRotate ~= nil then realHum.AutoRotate = HS.GhostRealAutoRotate end
         end
-        GhostRestoreRealVisuals()
+        HS.GhostRestoreRealVisuals()
         local camera = Workspace.CurrentCamera
         if camera then
-            camera.CameraType = GhostCameraType or Enum.CameraType.Custom
-            local hum = GhostRealCharacter and GhostRealCharacter:FindFirstChildOfClass("Humanoid")
-            camera.CameraSubject = hum or GhostCameraSubject
+            camera.CameraType = HS.GhostCameraType or Enum.CameraType.Custom
+            local hum = HS.GhostRealCharacter and HS.GhostRealCharacter:FindFirstChildOfClass("Humanoid")
+            camera.CameraSubject = hum or HS.GhostCameraSubject
         end
-        if GhostClone then pcall(function() GhostClone:Destroy() end) end
-        GhostRealCharacter, GhostClone, GhostRoot, GhostHumanoid = nil, nil, nil, nil
-        GhostControls, GhostRealRootCFrame, GhostRealAnchored, GhostRealAutoRotate = nil, nil, nil, nil
-        GhostCameraSubject, GhostCameraType = nil, nil
-        GhostFloat.SetOn(false)
+        if HS.GhostClone then pcall(function() HS.GhostClone:Destroy() end) end
+        HS.GhostRealCharacter, HS.GhostClone, HS.GhostRoot, HS.GhostHumanoid = nil, nil, nil, nil
+        HS.GhostControls, HS.GhostRealRootCFrame, HS.GhostRealAnchored, HS.GhostRealAutoRotate = nil, nil, nil, nil
+        HS.GhostCameraSubject, HS.GhostCameraType = nil, nil
+        HS.GhostFloat.SetOn(false)
         Notify("Ghost", "Ghost đã tắt; đã khôi phục nhân vật thật", 4)
     end
 end
-GhostFloat.OnTap(function() SetGhost(not GhostEnabled) end)
-TeleBack1Float.OnTap(SaveTeleBack)
-TeleBack2Float.OnTap(ReturnTeleBack)
-CreateToggle(TabMem, "Ghost · Phân thân điều khiển (Beta)", false, SetGhost)
-CreateLabel(TabMem, "Bản sao được điều khiển cục bộ; không đảm bảo ẩn nhân vật thật khỏi máy chủ hoặc người chơi khác.", C.Sub)
-CreateToggle(TabMem, "Hiện nút nổi Ghost", false, function(on) GhostFloat.Show(on) end)
-CreateToggle(TabMem, "Hiện nút nổi TeleBack1 (lưu vị trí)", false, function(on) TeleBack1Float.Show(on) end)
-CreateToggle(TabMem, "Hiện nút nổi TeleBack2 (quay lại)", false, function(on) TeleBack2Float.Show(on) end)
-CreateButton(TabMem, "TeleBack1 · Lưu vị trí", SaveTeleBack)
-CreateButton(TabMem, "TeleBack2 · Quay về vị trí đã lưu", ReturnTeleBack)
+HS.GhostFloat.OnTap(function() HS.SetGhost(not HS.GhostEnabled) end)
+HS.TeleBack1Float.OnTap(HS.SaveTeleBack)
+HS.TeleBack2Float.OnTap(HS.ReturnTeleBack)
+CreateToggle(HS.TabMem, "Ghost · Phân thân điều khiển (Beta)", false, HS.SetGhost)
+CreateLabel(HS.TabMem, "Bản sao được điều khiển cục bộ; không đảm bảo ẩn nhân vật thật khỏi máy chủ hoặc người chơi khác.", C.Sub)
+CreateToggle(HS.TabMem, "Hiện nút nổi Ghost", false, function(on) HS.GhostFloat.Show(on) end)
+CreateToggle(HS.TabMem, "Hiện nút nổi TeleBack1 (lưu vị trí)", false, function(on) HS.TeleBack1Float.Show(on) end)
+CreateToggle(HS.TabMem, "Hiện nút nổi TeleBack2 (quay lại)", false, function(on) HS.TeleBack2Float.Show(on) end)
+CreateButton(HS.TabMem, "TeleBack1 · Lưu vị trí", HS.SaveTeleBack)
+CreateButton(HS.TabMem, "TeleBack2 · Quay về vị trí đã lưu", HS.ReturnTeleBack)
 
 
 -- Fast Talk: reduce local ProximityPrompt hold time; server-side cooldowns remain controlled by the game.
-local FastTalkSaved = {}
-local FastTalkAddedConn = nil
-local function ApplyFastTalkPrompt(prompt)
+HS.FastTalkSaved = {}
+HS.FastTalkAddedConn = nil
+function HS.ApplyFastTalkPrompt(prompt)
     if not prompt or not prompt:IsA("ProximityPrompt") then return end
-    if FastTalkSaved[prompt] == nil then
-        FastTalkSaved[prompt] = { HoldDuration = prompt.HoldDuration, RequiresLineOfSight = prompt.RequiresLineOfSight }
+    if HS.FastTalkSaved[prompt] == nil then
+        HS.FastTalkSaved[prompt] = { HoldDuration = prompt.HoldDuration, RequiresLineOfSight = prompt.RequiresLineOfSight }
     end
     pcall(function()
         prompt.HoldDuration = 0
         prompt.RequiresLineOfSight = false
     end)
 end
-local function SetFastTalk(on)
+function HS.SetFastTalk(on)
     State.Memory.FastTalk = on and true or false
     if State.Memory.FastTalk then
         for _, inst in ipairs(Workspace:GetDescendants()) do
-            if inst:IsA("ProximityPrompt") then ApplyFastTalkPrompt(inst) end
+            if inst:IsA("ProximityPrompt") then HS.ApplyFastTalkPrompt(inst) end
         end
-        if FastTalkAddedConn then FastTalkAddedConn:Disconnect() end
-        FastTalkAddedConn = Workspace.DescendantAdded:Connect(function(inst)
+        if HS.FastTalkAddedConn then HS.FastTalkAddedConn:Disconnect() end
+        HS.FastTalkAddedConn = Workspace.DescendantAdded:Connect(function(inst)
             if State.Memory.FastTalk and inst:IsA("ProximityPrompt") then
-                task.defer(function() ApplyFastTalkPrompt(inst) end)
+                task.defer(function() HS.ApplyFastTalkPrompt(inst) end)
             end
         end)
         Notify("Fast Talk", "Đã giảm thời gian giữ prompt ở phía client", 4)
     else
-        if FastTalkAddedConn then FastTalkAddedConn:Disconnect(); FastTalkAddedConn = nil end
-        for prompt, saved in pairs(FastTalkSaved) do
+        if HS.FastTalkAddedConn then HS.FastTalkAddedConn:Disconnect(); HS.FastTalkAddedConn = nil end
+        for prompt, saved in pairs(HS.FastTalkSaved) do
             if prompt and prompt.Parent then
                 pcall(function()
                     prompt.HoldDuration = saved.HoldDuration
@@ -1756,39 +1759,39 @@ local function SetFastTalk(on)
                 end)
             end
         end
-        ClearTableCompat(FastTalkSaved)
+        ClearTableCompat(HS.FastTalkSaved)
         Notify("Fast Talk", "Đã khôi phục thiết lập prompt", 3)
     end
 end
-CreateToggle(TabMem, "Fast Talk · Tương tác nhanh", false, SetFastTalk)
-CreateLabel(TabMem, "Chỉ giảm thời gian giữ ProximityPrompt trên client; cooldown do máy chủ game quản lý vẫn có thể áp dụng.", C.Sub)
+CreateToggle(HS.TabMem, "Fast Talk · Tương tác nhanh", false, HS.SetFastTalk)
+CreateLabel(HS.TabMem, "Chỉ giảm thời gian giữ ProximityPrompt trên client; cooldown do máy chủ game quản lý vẫn có thể áp dụng.", C.Sub)
 
 -- Fast Attack (Beta): repeatedly activates the currently equipped Tool locally and speeds up local attack animations.
 -- The game server may still enforce its own attack cooldown and damage rules.
-local FastAttackAnimSpeeds = {}
-local FastAttackAnimatorConn = nil
-local function BoostAttackAnimation(track)
+HS.FastAttackAnimSpeeds = {}
+HS.FastAttackAnimatorConn = nil
+function HS.BoostAttackAnimation(track)
     if not track then return end
-    if FastAttackAnimSpeeds[track] == nil then
+    if HS.FastAttackAnimSpeeds[track] == nil then
         local originalSpeed = 1
         pcall(function() originalSpeed = track.Speed end)
-        FastAttackAnimSpeeds[track] = originalSpeed
+        HS.FastAttackAnimSpeeds[track] = originalSpeed
     end
     pcall(function() track:AdjustSpeed(10) end) -- 10x local animation speed
 end
-local function SetFastAttack(on)
+function HS.SetFastAttack(on)
     State.Memory.FastAttack = on and true or false
     if State.Memory.FastAttack then
         local char = LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         local animator = hum and (hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator", 2))
         if animator then
-            if FastAttackAnimatorConn then FastAttackAnimatorConn:Disconnect() end
-            FastAttackAnimatorConn = animator.AnimationPlayed:Connect(function(track)
-                if State.Memory.FastAttack then BoostAttackAnimation(track) end
+            if HS.FastAttackAnimatorConn then HS.FastAttackAnimatorConn:Disconnect() end
+            HS.FastAttackAnimatorConn = animator.AnimationPlayed:Connect(function(track)
+                if State.Memory.FastAttack then HS.BoostAttackAnimation(track) end
             end)
             pcall(function()
-                for _, track in ipairs(animator:GetPlayingAnimationTracks()) do BoostAttackAnimation(track) end
+                for _, track in ipairs(animator:GetPlayingAnimationTracks()) do HS.BoostAttackAnimation(track) end
             end)
         end
         task.spawn(function()
@@ -1803,33 +1806,33 @@ local function SetFastAttack(on)
         end)
         Notify("Fast Attack (Beta)", "Đã bật nhịp kích hoạt 0,1 giây ở client", 4)
     else
-        if FastAttackAnimatorConn then FastAttackAnimatorConn:Disconnect(); FastAttackAnimatorConn = nil end
-        for track, speed in pairs(FastAttackAnimSpeeds) do
+        if HS.FastAttackAnimatorConn then HS.FastAttackAnimatorConn:Disconnect(); HS.FastAttackAnimatorConn = nil end
+        for track, speed in pairs(HS.FastAttackAnimSpeeds) do
             pcall(function()
                 if track and track.IsPlaying then track:AdjustSpeed(speed) end
             end)
         end
-        ClearTableCompat(FastAttackAnimSpeeds)
+        ClearTableCompat(HS.FastAttackAnimSpeeds)
         Notify("Fast Attack (Beta)", "Đã tắt", 3)
     end
 end
-CreateToggle(TabMem, "Fast Attack (Beta) · 0,1s", false, SetFastAttack)
-CreateLabel(TabMem, "Thử kích hoạt Tool mỗi 0,1 giây và tăng tốc animation cục bộ. Máy chủ game vẫn có thể giới hạn tốc độ đánh/sát thương.", C.Sub)
+CreateToggle(HS.TabMem, "Fast Attack (Beta) · 0,1s", false, HS.SetFastAttack)
+CreateLabel(HS.TabMem, "Thử kích hoạt Tool mỗi 0,1 giây và tăng tốc animation cục bộ. Máy chủ game vẫn có thể giới hạn tốc độ đánh/sát thương.", C.Sub)
 
 -- TeleSky2: hover at a fixed altitude and move horizontally using the normal movement controls.
-local SetLockNV
-local TeleSky2Toggle
-local function SetTeleSky2(on)
+;
+;
+function HS.SetTeleSky2(on)
     local hrp, hum = GetHRP()
     if on then
         if State.Memory.TeleSky2 then return end
         if not hrp or not hum or hum.Health <= 0 then
             Notify("TeleSky2", "Không tìm thấy nhân vật", 3)
-            TeleSky2Float.SetOn(false)
-            if TeleSky2Toggle then TeleSky2Toggle.Set(false, false) end
+            HS.TeleSky2Float.SetOn(false)
+            if HS.TeleSky2Toggle then HS.TeleSky2Toggle.Set(false, false) end
             return
         end
-        if State.Memory.LockNV then SetLockNV(false) end
+        if State.Memory.LockNV then HS.SetLockNV(false) end
         local startPos = hrp.Position
         local groundPos = nil
         local params = RaycastParams.new()
@@ -1855,8 +1858,8 @@ local function SetTeleSky2(on)
         State.Memory.TeleSky2 = true
         hum.AutoRotate = false
         hrp.CFrame = CFrame.new(startPos.X, targetY, startPos.Z)
-        TeleSky2Float.SetOn(true)
-        if TeleSky2Toggle then TeleSky2Toggle.Set(true, false) end
+        HS.TeleSky2Float.SetOn(true)
+        if HS.TeleSky2Toggle then HS.TeleSky2Toggle.Set(true, false) end
         Notify("TeleSky2", "Đã bật chế độ lơ lửng; dùng cần di chuyển để tiến/lùi", 4)
     else
         if not State.Memory.TeleSky2 then return end
@@ -1878,19 +1881,19 @@ local function SetTeleSky2(on)
             end
         end
         State.Memory.TeleSky2Data = nil
-        TeleSky2Float.SetOn(false)
-        if TeleSky2Toggle then TeleSky2Toggle.Set(false, false) end
+        HS.TeleSky2Float.SetOn(false)
+        if HS.TeleSky2Toggle then HS.TeleSky2Toggle.Set(false, false) end
         Notify("TeleSky2", "Đã tắt và đưa nhân vật xuống gần mặt đất", 3)
     end
 end
-TeleSky2Toggle = CreateToggle(TabMem, "TeleSky2 · Lơ lửng trên trời", false, SetTeleSky2)
-CreateToggle(TabMem, "TeleSky2 (hiện nút nổi)", false, function(on) TeleSky2Float.Show(on) end)
-TeleSky2Float.OnTap(function() SetTeleSky2(not State.Memory.TeleSky2) end)
+HS.TeleSky2Toggle = CreateToggle(HS.TabMem, "TeleSky2 · Lơ lửng trên trời", false, HS.SetTeleSky2)
+CreateToggle(HS.TabMem, "TeleSky2 (hiện nút nổi)", false, function(on) HS.TeleSky2Float.Show(on) end)
+HS.TeleSky2Float.OnTap(function() HS.SetTeleSky2(not State.Memory.TeleSky2) end)
 Connections[#Connections + 1] = RunService.Heartbeat:Connect(function()
     if not State.Memory.TeleSky2 then return end
     local data = State.Memory.TeleSky2Data
     if not data or not data.Root or not data.Root.Parent or not data.Humanoid or data.Humanoid.Health <= 0 then
-        SetTeleSky2(false)
+        HS.SetTeleSky2(false)
         return
     end
     local cam = Workspace.CurrentCamera
@@ -1907,40 +1910,40 @@ Connections[#Connections + 1] = RunService.Heartbeat:Connect(function()
     end
 end)
 
-local TeleWallSaved = nil
-local function ActivateTeleWall()
+HS.TeleWallSaved = nil
+function HS.ActivateTeleWall()
 if State.Memory.TeleWallBusy then return end
 local cam = Workspace.CurrentCamera
 if not cam then Notify("Tele Wall", "Không tìm thấy camera", 4); return end
 State.Memory.TeleWallBusy = true
-TeleWallFloat.Flash()
-TeleWallSaved = { Type = cam.CameraType, Subject = cam.CameraSubject, CFrame = cam.CFrame, Focus = cam.Focus }
+HS.TeleWallFloat.Flash()
+HS.TeleWallSaved = { Type = cam.CameraType, Subject = cam.CameraSubject, CFrame = cam.CFrame, Focus = cam.Focus }
 cam.CameraType = Enum.CameraType.Scriptable
-cam.CFrame = TeleWallSaved.CFrame + TeleWallSaved.CFrame.LookVector * 16
-cam.Focus = TeleWallSaved.Focus + TeleWallSaved.CFrame.LookVector * 16
+cam.CFrame = HS.TeleWallSaved.CFrame + HS.TeleWallSaved.CFrame.LookVector * 16
+cam.Focus = HS.TeleWallSaved.Focus + HS.TeleWallSaved.CFrame.LookVector * 16
 Notify("Tele Wall", "Đã dịch chuyển camera", 4)
 task.delay(7, function()
-if TeleWallSaved then
+if HS.TeleWallSaved then
 local current = Workspace.CurrentCamera
 if current then
-current.CameraType = TeleWallSaved.Type
-current.CameraSubject = TeleWallSaved.Subject
-current.CFrame = TeleWallSaved.CFrame
-current.Focus = TeleWallSaved.Focus
+current.CameraType = HS.TeleWallSaved.Type
+current.CameraSubject = HS.TeleWallSaved.Subject
+current.CFrame = HS.TeleWallSaved.CFrame
+current.Focus = HS.TeleWallSaved.Focus
 end
-TeleWallSaved = nil
+HS.TeleWallSaved = nil
 end
 State.Memory.TeleWallBusy = false
 Notify("Tele Wall", "Camera đã trở về vị trí ban đầu", 3)
 end)
 end
-TeleWallFloat.OnTap(ActivateTeleWall)
-CreateToggle(TabMem, "Tele Wall (hiện nút nổi camera)", false, function(on)
-TeleWallFloat.Show(on)
+HS.TeleWallFloat.OnTap(HS.ActivateTeleWall)
+CreateToggle(HS.TabMem, "Tele Wall (hiện nút nổi camera)", false, function(on)
+HS.TeleWallFloat.Show(on)
 end)
 
 -- Tele Wall 2: dịch chuyển nhân vật theo hướng nhìn; camera Roblox sẽ theo nhân vật.
-local function ActivateTeleWall2()
+function HS.ActivateTeleWall2()
 local hrp, hum = GetHRP()
 if not hrp or not hum or hum.Health <= 0 then
 Notify("Tele Wall 2", "Không tìm thấy nhân vật đang hoạt động", 3)
@@ -1954,26 +1957,26 @@ hrp.CFrame = CFrame.new(target, target + direction)
 hrp.AssemblyLinearVelocity = Vector3.zero
 end)
 if ok then
-TeleWall2Float.Flash()
+HS.TeleWall2Float.Flash()
 Notify("Tele Wall 2", "Đã thử dịch chuyển khoảng 5 m theo hướng nhìn", 3)
 else
 Notify("Tele Wall 2", "Không thể dịch chuyển trong môi trường này", 3)
 end
 end
-TeleWall2Float.OnTap(ActivateTeleWall2)
-CreateToggle(TabMem, "Tele Wall 2 (hiện nút nổi)", false, function(on)
-TeleWall2Float.Show(on)
+HS.TeleWall2Float.OnTap(HS.ActivateTeleWall2)
+CreateToggle(HS.TabMem, "Tele Wall 2 (hiện nút nổi)", false, function(on)
+HS.TeleWall2Float.Show(on)
 end)
 
 -- LockNV: giữ root tại chỗ, kể cả khi đang ở trên không; khôi phục trạng thái Anchored khi tắt.
-local LockNVToggle
-SetLockNV = function(on)
+;
+HS.SetLockNV = function(on)
 local hrp, hum = GetHRP()
 if on then
 if State.Memory.LockNV then return end
 if not hrp or not hum or hum.Health <= 0 then
 Notify("LockNV", "Không tìm thấy nhân vật", 3)
-LockNVFloat.SetOn(false)
+HS.LockNVFloat.SetOn(false)
 return
 end
 State.Memory.LockNVData = {
@@ -2005,54 +2008,54 @@ pcall(function() data.Humanoid.AutoRotate = data.AutoRotate end)
 end
 State.Memory.LockNVData = nil
 end
-LockNVFloat.SetOn(State.Memory.LockNV)
-if LockNVToggle then LockNVToggle.Set(State.Memory.LockNV, false) end
+HS.LockNVFloat.SetOn(State.Memory.LockNV)
+if HS.LockNVToggle then HS.LockNVToggle.Set(State.Memory.LockNV, false) end
 Notify("LockNV", State.Memory.LockNV and "Đã khóa vị trí hiện tại" or "Đã khôi phục trạng thái", 3)
 end
-LockNVToggle = CreateToggle(TabMem, "LockNV · Đứng yên trên không", false, SetLockNV)
-CreateToggle(TabMem, "LockNV (hiện nút nổi)", false, function(on)
-LockNVFloat.Show(on)
+HS.LockNVToggle = CreateToggle(HS.TabMem, "LockNV · Đứng yên trên không", false, HS.SetLockNV)
+CreateToggle(HS.TabMem, "LockNV (hiện nút nổi)", false, function(on)
+HS.LockNVFloat.Show(on)
 end)
-LockNVFloat.OnTap(function() SetLockNV(not State.Memory.LockNV) end)
+HS.LockNVFloat.OnTap(function() HS.SetLockNV(not State.Memory.LockNV) end)
 
-local SpeedTimeSaved = 16
-local function SetSpeedTime(on)
+HS.SpeedTimeSaved = 16
+function HS.SetSpeedTime(on)
 State.Memory.SpeedTime = on
-SpeedTimeFloat.SetOn(on)
+HS.SpeedTimeFloat.SetOn(on)
 local _, hum = GetHRP()
 if on then
-if hum then SpeedTimeSaved = hum.WalkSpeed; hum.WalkSpeed = 40 end
+if hum then HS.SpeedTimeSaved = hum.WalkSpeed; hum.WalkSpeed = 40 end
 Notify("Speed Time", "Đã bật tốc độ di chuyển tăng cường", 4)
 else
-if hum then hum.WalkSpeed = State.Player.SpeedOn and State.Player.Speed or SpeedTimeSaved end
+if hum then hum.WalkSpeed = State.Player.SpeedOn and State.Player.Speed or HS.SpeedTimeSaved end
 Notify("Speed Time", "Đã khôi phục tốc độ di chuyển", 3)
 end
 end
-SpeedTimeFloat.OnTap(function() SetSpeedTime(not State.Memory.SpeedTime) end)
-CreateToggle(TabMem, "Speed Time (hiện nút nổi)", false, function(on)
-SpeedTimeFloat.Show(on)
+HS.SpeedTimeFloat.OnTap(function() HS.SetSpeedTime(not State.Memory.SpeedTime) end)
+CreateToggle(HS.TabMem, "Speed Time (hiện nút nổi)", false, function(on)
+HS.SpeedTimeFloat.Show(on)
 end)
 
-local FlyUpX2Toggle
-local function SetFlyUpX2(on)
+;
+function HS.SetFlyUpX2(on)
 if on and (State.Memory.FlyEnabled or State.Under.Enabled) then
 Notify("Fly X2", "Hãy tắt Fly và Under Plan trước", 4)
 State.Memory.FlyUpX2 = false
-FlyUpX2Float.SetOn(false)
-if FlyUpX2Toggle then FlyUpX2Toggle.Set(false, false) end
+HS.FlyUpX2Float.SetOn(false)
+if HS.FlyUpX2Toggle then HS.FlyUpX2Toggle.Set(false, false) end
 return
 end
 State.Memory.FlyUpX2 = on and true or false
-FlyUpX2Float.SetOn(State.Memory.FlyUpX2)
-if FlyUpX2Toggle then FlyUpX2Toggle.Set(State.Memory.FlyUpX2, false) end
+HS.FlyUpX2Float.SetOn(State.Memory.FlyUpX2)
+if HS.FlyUpX2Toggle then HS.FlyUpX2Toggle.Set(State.Memory.FlyUpX2, false) end
 Notify("Fly X2", State.Memory.FlyUpX2 and "Đã bật chuyển động lên/xuống mượt" or "Đã tắt Fly X2", 3)
 end
-FlyUpX2Toggle = CreateToggle(TabMem, "Fly UpX2", false, SetFlyUpX2)
-CreateToggle(TabMem, "Hiện nút nổi Fly X2", false, function(on) FlyUpX2Float.Show(on) end)
-FlyUpX2Float.OnTap(function() SetFlyUpX2(not State.Memory.FlyUpX2) end)
+HS.FlyUpX2Toggle = CreateToggle(HS.TabMem, "Fly UpX2", false, HS.SetFlyUpX2)
+CreateToggle(HS.TabMem, "Hiện nút nổi Fly X2", false, function(on) HS.FlyUpX2Float.Show(on) end)
+HS.FlyUpX2Float.OnTap(function() HS.SetFlyUpX2(not State.Memory.FlyUpX2) end)
 
-CreateSlider(TabMem, "WalkSpeed", 1, 300, 16, function(v) State.Player.Speed = v end)
-CreateToggle(TabMem, "Bật WalkSpeed", false, function(s)
+CreateSlider(HS.TabMem, "WalkSpeed", 1, 300, 16, function(v) State.Player.Speed = v end)
+CreateToggle(HS.TabMem, "Bật WalkSpeed", false, function(s)
 local _, hum = GetHRP()
 if s then
 if hum then State.Player.DefSpeed = hum.WalkSpeed end
@@ -2062,8 +2065,8 @@ State.Player.SpeedOn = false
 if hum then hum.WalkSpeed = State.Player.DefSpeed end
 end
 end)
-CreateSlider(TabMem, "JumpPower", 1, 500, 50, function(v) State.Player.Jump = v end)
-CreateToggle(TabMem, "Bật JumpPower", false, function(s)
+CreateSlider(HS.TabMem, "JumpPower", 1, 500, 50, function(v) State.Player.Jump = v end)
+CreateToggle(HS.TabMem, "Bật JumpPower", false, function(s)
 local _, hum = GetHRP()
 if s then
 if hum then pcall(function() State.Player.DefJump = hum.JumpPower end) end
@@ -2073,10 +2076,10 @@ State.Player.JumpOn = false
 if hum then pcall(function() hum.JumpPower = State.Player.DefJump end) end
 end
 end)
-CreateToggle(TabMem, "Infinite Jump", false, function(s) State.Player.InfJump = s end)
-CreateToggle(TabMem, "Noclip", false, function(s) State.Player.Noclip = s end)
+CreateToggle(HS.TabMem, "Infinite Jump", false, function(s) State.Player.InfJump = s end)
+CreateToggle(HS.TabMem, "Noclip", false, function(s) State.Player.Noclip = s end)
 
-local function IsCharacterPart(part)
+function HS.IsCharacterPart(part)
 local cur = part.Parent
 while cur and cur ~= Workspace do
 if cur:IsA("Model") and cur:FindFirstChildOfClass("Humanoid") then return true end
@@ -2085,48 +2088,48 @@ end
 return false
 end
 
-local function HidePart(part)
-if UnderHidden[part] then return end
+function HS.HidePart(part)
+if HS.UnderHidden[part] then return end
 if not part:IsA("BasePart") then return end
-if IsCharacterPart(part) then return end
-UnderHidden[part] = true
+if HS.IsCharacterPart(part) then return end
+HS.UnderHidden[part] = true
 pcall(function() part.LocalTransparencyModifier = 1 end)
 end
 
-local function HideAllTerrainParts()
+function HS.HideAllTerrainParts()
 task.spawn(function()
 local n = 0
 for _, d in ipairs(Workspace:GetDescendants()) do
 if not State.Under.Enabled or not State.Under.Hide or Unloaded then return end
-HidePart(d)
+HS.HidePart(d)
 n = n + 1
 if n % 400 == 0 then task.wait() end
 end
 end)
 end
 
-local function RestoreHidden()
-for part in pairs(UnderHidden) do
+function HS.RestoreHidden()
+for part in pairs(HS.UnderHidden) do
 if part and part.Parent then
 pcall(function() part.LocalTransparencyModifier = 0 end)
 end
 end
-ClearTableCompat(UnderHidden)
+ClearTableCompat(HS.UnderHidden)
 end
 
 Connections[#Connections + 1] = Workspace.DescendantAdded:Connect(function(d)
 if State.Under.Enabled and State.Under.Hide and not Unloaded then
-task.defer(HidePart, d)
+task.defer(HS.HidePart, d)
 end
 end)
 
-local function FixCharacters()
+function HS.FixCharacters()
 for _, plr in ipairs(Players:GetPlayers()) do
 local char = plr.Character
 if char then
 for _, p in ipairs(char:GetDescendants()) do
-if p:IsA("BasePart") and UnderHidden[p] then
-UnderHidden[p] = nil
+if p:IsA("BasePart") and HS.UnderHidden[p] then
+HS.UnderHidden[p] = nil
 pcall(function() p.LocalTransparencyModifier = 0 end)
 end
 end
@@ -2134,7 +2137,7 @@ end
 end
 end
 
-local function SetUnder(on)
+function HS.SetUnder(on)
 local U = State.Under
 if on == U.Enabled then return end
 U.RunToken = U.RunToken + 1
@@ -2143,17 +2146,17 @@ local hrp, hum = GetHRP()
 if on then
 if not hrp or not hum then
 Notify("Under Plan", "Chưa có nhân vật", 5)
-UnderFloat.SetOn(false)
+HS.UnderFloat.SetOn(false)
 return
 end
-if State.Memory.FlyEnabled then SetFly(false) end
-pcall(function() Invis.Set(true) end)
+if State.Memory.FlyEnabled then HS.SetFly(false) end
+pcall(function() HS.Invis.Set(true) end)
 Notify("Under Plan+Invisibility", "Đang bật Under và tàng hình cục bộ", 3)
 if Unloaded then return end
 hrp, hum = GetHRP()
 if not hrp or not hum then
 U.Enabled = false
-UnderFloat.SetOn(false)
+HS.UnderFloat.SetOn(false)
 return
 end
 local params = RaycastParams.new()
@@ -2167,22 +2170,22 @@ U.Y = U.GroundY - U.Depth
 U.Enabled = true
 hrp.CFrame = CFrame.new(hrp.Position.X, U.Y, hrp.Position.Z)
 pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end)
-UnderFloat.SetOn(true)
-if U.Hide then HideAllTerrainParts() end
+HS.UnderFloat.SetOn(true)
+if U.Hide then HS.HideAllTerrainParts() end
 if U.Duration > 0 then
     task.delay(U.Duration, function()
         if not Unloaded and U.Enabled and U.RunToken == runToken then
-            SetUnder(false)
+            HS.SetUnder(false)
             Notify("Under Plan+Invisibility", "Hết thời gian; đã khôi phục", 3)
         end
     end)
 end
 else
 U.Enabled = false
-RestoreHidden()
-UnderFloat.SetOn(false)
-pcall(function() Invis.Set(false) end)
-pcall(function() if GhostEnabled then SetGhost(false) end end)
+HS.RestoreHidden()
+HS.UnderFloat.SetOn(false)
+pcall(function() HS.Invis.Set(false) end)
+pcall(function() if HS.GhostEnabled then HS.SetGhost(false) end end)
 if hrp then
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
@@ -2206,13 +2209,13 @@ if hum then hum.PlatformStand = false end
 end
 end
 
-local function ForceUnderOff()
+function HS.ForceUnderOff()
 State.Under.Enabled = false
-RestoreHidden()
-UnderFloat.SetOn(false)
+HS.RestoreHidden()
+HS.UnderFloat.SetOn(false)
 end
 
-local function UpdateUnder(dt, hrp, hum)
+function HS.UpdateUnder(dt, hrp, hum)
 local U = State.Under
 if not U.Enabled or not hrp or not hum then return end
 hum.PlatformStand = true
@@ -2224,35 +2227,35 @@ local _, yaw = hrp.CFrame:ToEulerAnglesYXZ()
 hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, yaw, 0)
 end
 
-CreateHeader(TabMem, "UNDER PLAN + INVISIBILITY")
-CreateLabel(TabMem, "Bật Under sẽ bật tàng hình cục bộ; thời gian tự tắt có thể chỉnh bên dưới.", C.Sub)
-CreateSlider(TabMem, "Thời gian Under + Invisibility (0 = thủ công, 1–5s tự tắt)", 0, 5, 0, function(v)
+CreateHeader(HS.TabMem, "UNDER PLAN + INVISIBILITY")
+CreateLabel(HS.TabMem, "Bật Under sẽ bật tàng hình cục bộ; thời gian tự tắt có thể chỉnh bên dưới.", C.Sub)
+CreateSlider(HS.TabMem, "Thời gian Under + Invisibility (0 = thủ công, 1–5s tự tắt)", 0, 5, 0, function(v)
     State.Under.Duration = math.clamp(v, 0, 5)
 end)
-CreateToggle(TabMem, "Under Plan + Invisibility (hiện nút nổi)", false, function(s)
-UnderFloat.Show(s)
-if not s and State.Under.Enabled then SetUnder(false) end
+CreateToggle(HS.TabMem, "Under Plan + Invisibility (hiện nút nổi)", false, function(s)
+HS.UnderFloat.Show(s)
+if not s and State.Under.Enabled then HS.SetUnder(false) end
 end)
-CreateSlider(TabMem, "Độ sâu dưới mặt đất", 5, 300, 30, function(v)
+CreateSlider(HS.TabMem, "Độ sâu dưới mặt đất", 5, 300, 30, function(v)
 State.Under.Depth = v
 if State.Under.Enabled and State.Under.GroundY then
 State.Under.Y = State.Under.GroundY - v
 end
 end)
-CreateSlider(TabMem, "Tốc độ di chuyển Under", 1, 200, 40, function(v) State.Under.Speed = v end)
-CreateToggle(TabMem, "Ẩn địa hình khi Under", true, function(s)
+CreateSlider(HS.TabMem, "Tốc độ di chuyển Under", 1, 200, 40, function(v) State.Under.Speed = v end)
+CreateToggle(HS.TabMem, "Ẩn địa hình khi Under", true, function(s)
 State.Under.Hide = s
 if State.Under.Enabled then
-if s then HideAllTerrainParts() else RestoreHidden() end
+if s then HS.HideAllTerrainParts() else HS.RestoreHidden() end
 end
 end)
-UnderFloat.OnTap(function() SetUnder(not State.Under.Enabled) end)
+HS.UnderFloat.OnTap(function() HS.SetUnder(not State.Under.Enabled) end)
 
-CreateHeader(TabMem, "TIỆN ÍCH")
-local function SetFullbright(on)
+CreateHeader(HS.TabMem, "TIỆN ÍCH")
+function HS.SetFullbright(on)
 if on then
-if not LightOrig then
-LightOrig = {
+if not HS.LightOrig then
+HS.LightOrig = {
 Brightness = Lighting.Brightness, ClockTime = Lighting.ClockTime, FogEnd = Lighting.FogEnd,
 GlobalShadows = Lighting.GlobalShadows, Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient
 }
@@ -2263,15 +2266,15 @@ Lighting.FogEnd = 100000
 Lighting.GlobalShadows = false
 Lighting.Ambient = Color3.fromRGB(200, 200, 200)
 Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
-elseif LightOrig then
-for k, v in pairs(LightOrig) do
+elseif HS.LightOrig then
+for k, v in pairs(HS.LightOrig) do
 pcall(function() Lighting[k] = v end)
 end
-LightOrig = nil
+HS.LightOrig = nil
 end
 end
-CreateToggle(TabMem, "Fullbright", false, SetFullbright)
-CreateToggle(TabMem, "Anti-AFK", false, function(s) State.Player.AntiAFK = s end)
+CreateToggle(HS.TabMem, "Fullbright", false, HS.SetFullbright)
+CreateToggle(HS.TabMem, "Anti-AFK", false, function(s) State.Player.AntiAFK = s end)
 
 Connections[#Connections + 1] = LocalPlayer.Idled:Connect(function()
 if State.Player.AntiAFK then
@@ -2298,7 +2301,7 @@ end
 end
 end)
 
-local function RestorePlayer()
+function HS.RestorePlayer()
 local _, hum = GetHRP()
 if hum then
 pcall(function() hum.WalkSpeed = State.Player.DefSpeed end)
@@ -2308,91 +2311,91 @@ end
 
 Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function()
 State.Memory.InSky = false
-if State.Memory.TeleSky2 then pcall(function() SetTeleSky2(false) end) end
-if State.Memory.FastTalk then pcall(function() SetFastTalk(false) end) end
-if State.Memory.FastAttack then pcall(function() SetFastAttack(false) end) end
+if State.Memory.TeleSky2 then pcall(function() HS.SetTeleSky2(false) end) end
+if State.Memory.FastTalk then pcall(function() HS.SetFastTalk(false) end) end
+if State.Memory.FastAttack then pcall(function() HS.SetFastAttack(false) end) end
 State.Memory.LockNV = false
 State.Memory.LockNVData = nil
-LockNVFloat.SetOn(false)
-SkyFloat.SetOn(false)
-if State.Under.Enabled then ForceUnderOff() end
-DestroyFlyBodies()
+HS.LockNVFloat.SetOn(false)
+HS.SkyFloat.SetOn(false)
+if State.Under.Enabled then HS.ForceUnderOff() end
+HS.DestroyFlyBodies()
 end)
 
-local TabSet = CreateTab("Setting")
-CreateHeader(TabSet, "ÂM THANH")
-CreateToggle(TabSet, "Âm thanh nút bấm (tíc)", true, function(s) State.Settings.Sound = s end)
-CreateSlider(TabSet, "Âm lượng (%)", 0, 100, 80, function(v) State.Settings.Volume = v end)
+HS.TabSet = CreateTab("Setting")
+CreateHeader(HS.TabSet, "ÂM THANH")
+CreateToggle(HS.TabSet, "Âm thanh nút bấm (tíc)", true, function(s) State.Settings.Sound = s end)
+CreateSlider(HS.TabSet, "Âm lượng (%)", 0, 100, 80, function(v) State.Settings.Volume = v end)
 
-CreateHeader(TabSet, "GIAO DIỆN")
-CreateSlider(TabSet, "Cỡ menu (%)", 50, 160, math.floor(startScale * 100), function(v) MainScale.Scale = v / 100 end)
-CreateButton(TabSet, "Đưa menu về giữa màn hình", function()
+CreateHeader(HS.TabSet, "GIAO DIỆN")
+CreateSlider(HS.TabSet, "Cỡ menu (%)", 50, 160, math.floor(HS.startScale * 100), function(v) HS.MainScale.Scale = v / 100 end)
+CreateButton(HS.TabSet, "Đưa menu về giữa màn hình", function()
 Main.Position = UDim2.new(0.5, 0, 0.5, 0)
 end)
-CreateLabel(TabSet, "Phiên bản: " .. TITLE_RICH)
+CreateLabel(HS.TabSet, "Phiên bản: " .. TITLE_RICH)
 
-CreateHeader(TabSet, "HỆ THỐNG")
+CreateHeader(HS.TabSet, "HỆ THỐNG")
 
-local function Unload()
+function HS.Unload()
 if Unloaded then return end
 Unloaded = true
-BannerActive = false
-pcall(function() SetFly(false) end)
+HS.BannerActive = false
+pcall(function() HS.SetFly(false) end)
 State.Memory.FlyUpX2 = false
 pcall(function() local r = GetHRP(); if r then local v = r.AssemblyLinearVelocity; r.AssemblyLinearVelocity = Vector3.new(v.X, 0, v.Z) end end)
-pcall(DestroyFlyBodies)
+pcall(HS.DestroyFlyBodies)
 pcall(function()
 State.Under.Enabled = false
-RestoreHidden()
+HS.RestoreHidden()
 end)
-pcall(ClearChams)
-pcall(function() Invis.Set(false) end)
-pcall(function() if GhostEnabled then SetGhost(false) end end)
-pcall(function() SetSpinPlayer(false) end)
-pcall(function() if State.Memory.LockNV then SetLockNV(false) end end)
-pcall(function() if State.Memory.SpeedTime then SetSpeedTime(false) end end)
+pcall(HS.ClearChams)
+pcall(function() HS.Invis.Set(false) end)
+pcall(function() if HS.GhostEnabled then HS.SetGhost(false) end end)
+pcall(function() HS.SetSpinPlayer(false) end)
+pcall(function() if State.Memory.LockNV then HS.SetLockNV(false) end end)
+pcall(function() if State.Memory.SpeedTime then HS.SetSpeedTime(false) end end)
 pcall(function()
-if TeleWallSaved and Workspace.CurrentCamera then
-Workspace.CurrentCamera.CameraType = TeleWallSaved.Type
-Workspace.CurrentCamera.CameraSubject = TeleWallSaved.Subject
-Workspace.CurrentCamera.CFrame = TeleWallSaved.CFrame
-Workspace.CurrentCamera.Focus = TeleWallSaved.Focus
-TeleWallSaved = nil
+if HS.TeleWallSaved and Workspace.CurrentCamera then
+Workspace.CurrentCamera.CameraType = HS.TeleWallSaved.Type
+Workspace.CurrentCamera.CameraSubject = HS.TeleWallSaved.Subject
+Workspace.CurrentCamera.CFrame = HS.TeleWallSaved.CFrame
+Workspace.CurrentCamera.Focus = HS.TeleWallSaved.Focus
+HS.TeleWallSaved = nil
 end
 end)
-pcall(RestorePlayer)
-pcall(function() SetFullbright(false) end)
-pcall(function() if State.Memory.TeleSky2 then SetTeleSky2(false) end end)
-pcall(function() if State.Memory.FastTalk then SetFastTalk(false) end end)
-pcall(function() if State.Memory.FastAttack then SetFastAttack(false) end end)
-pcall(function() SetAutoHeal(false) end)
-pcall(function() SetFreezeMarker(false) end)
+pcall(HS.RestorePlayer)
+pcall(function() HS.SetFullbright(false) end)
+pcall(function() if State.Memory.TeleSky2 then HS.SetTeleSky2(false) end end)
+pcall(function() if State.Memory.FastTalk then HS.SetFastTalk(false) end end)
+pcall(function() if State.Memory.FastAttack then HS.SetFastAttack(false) end end)
+pcall(function() HS.SetAutoHeal(false) end)
+pcall(function() HS.SetFreezeMarker(false) end)
 pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
 for _, c in ipairs(Connections) do pcall(function() c:Disconnect() end) end
 ClearTableCompat(Connections)
-for plr in pairs(ESPObjects) do RemoveESP(plr) end
+for plr in pairs(ESPObjects) do HS.RemoveESP(plr) end
 for _, d in pairs(Drawings) do pcall(function() d:Remove() end) end
 ClearTableCompat(Drawings)
-pcall(function() ClickSound:Destroy() end)
+pcall(function() HS.ClickSound:Destroy() end)
 pcall(function() ScreenGui:Destroy() end)
-pcall(function() NotifyGui:Destroy() end)
+pcall(function() HS.NotifyGui:Destroy() end)
 end
-Env.HyperSunUnload = Unload
+Env.HyperSunUnload = HS.Unload
 
-CreateButton(TabSet, "Gỡ script (Unload)", Unload)
+CreateButton(HS.TabSet, "Gỡ script (Unload)", HS.Unload)
 
 SelectTab("Function")
 
-local fpsTimer, fpsFrames = 0, 0
-local fixTimer = 0
-local FeatureErrorShown = {}
-local function SafeFeatureCall(featureName, fn, ...)
+HS.fpsTimer, HS.fpsFrames = 0, 0
+HS.fixTimer = 0
+HS.FeatureErrorShown = {}
+function HS.SafeFeatureCall(featureName, fn, ...)
     local args = {...}
     local ok, err = pcall(function() fn(table.unpack(args)) end)
     if not ok then
         warn("[HyperSun 2.4 Beta] " .. tostring(featureName) .. ": " .. tostring(err))
-        if not FeatureErrorShown[featureName] then
-            FeatureErrorShown[featureName] = true
+        if not HS.FeatureErrorShown[featureName] then
+            HS.FeatureErrorShown[featureName] = true
             pcall(function()
                 Notify("HyperSun · Lỗi chức năng", tostring(featureName) .. ": " .. tostring(err), 8)
             end)
@@ -2401,7 +2404,7 @@ local function SafeFeatureCall(featureName, fn, ...)
     return ok
 end
 
-local function GetPing()
+function HS.GetPing()
 local ok, v = pcall(function()
 return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
 end)
@@ -2413,31 +2416,31 @@ Connections[#Connections + 1] = RunService.RenderStepped:Connect(function(dt)
 if Unloaded then return end
 Camera = Workspace.CurrentCamera or Camera
 
-fpsTimer = fpsTimer + dt
-fpsFrames = fpsFrames + 1
-if fpsTimer >= 0.5 then
-FooterStats.Text = "FPS " .. math.floor(fpsFrames / fpsTimer + 0.5)
-.. "  |  Ping " .. GetPing() .. " ms  |  Players " .. #Players:GetPlayers()
-fpsTimer, fpsFrames = 0, 0
+HS.fpsTimer = HS.fpsTimer + dt
+HS.fpsFrames = HS.fpsFrames + 1
+if HS.fpsTimer >= 0.5 then
+HS.FooterStats.Text = "FPS " .. math.floor(HS.fpsFrames / HS.fpsTimer + 0.5)
+.. "  |  Ping " .. HS.GetPing() .. " ms  |  Players " .. #Players:GetPlayers()
+HS.fpsTimer, HS.fpsFrames = 0, 0
 end
 
 if State.Under.Enabled then
-fixTimer = fixTimer + dt
-if fixTimer >= 1 then
-fixTimer = 0
-SafeFeatureCall("FixCharacters", FixCharacters)
+HS.fixTimer = HS.fixTimer + dt
+if HS.fixTimer >= 1 then
+HS.fixTimer = 0
+HS.SafeFeatureCall("FixCharacters", HS.FixCharacters)
 end
 end
 
-SafeFeatureCall("UpdateESP", UpdateESP)
-SafeFeatureCall("UpdateChams", UpdateChams)
+HS.SafeFeatureCall("UpdateESP", HS.UpdateESP)
+HS.SafeFeatureCall("UpdateChams", HS.UpdateChams)
 
 local hrp, hum = GetHRP()
 
-if SpinPlayer.Enabled and hrp and hum and hum.Health > 0 then
-    SpinPlayer.Angle = SpinPlayer.Angle + math.rad(90 * SpinPlayer.Speed) * dt
+if HS.SpinPlayer.Enabled and hrp and hum and hum.Health > 0 then
+    HS.SpinPlayer.Angle = HS.SpinPlayer.Angle + math.rad(90 * HS.SpinPlayer.Speed) * dt
     pcall(function()
-        hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, SpinPlayer.Angle, 0)
+        hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, HS.SpinPlayer.Angle, 0)
     end)
 end
 
@@ -2461,10 +2464,10 @@ end)
 end
 end
 
-SafeFeatureCall("UpdateFly", UpdateFly, dt, hrp, hum)
-SafeFeatureCall("UpdateUnder", UpdateUnder, dt, hrp, hum)
+HS.SafeFeatureCall("UpdateFly", HS.UpdateFly, dt, hrp, hum)
+HS.SafeFeatureCall("UpdateUnder", HS.UpdateUnder, dt, hrp, hum)
 end)
 
 Connections[#Connections + 1] = LocalPlayer.OnTeleport:Connect(function()
-pcall(Unload)
+pcall(HS.Unload)
 end)
