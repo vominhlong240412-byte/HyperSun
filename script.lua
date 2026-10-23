@@ -1060,6 +1060,8 @@ local TeleBack1Float = CreateFloat("TeleBack1", 504)
 local TeleBack2Float = CreateFloat("TeleBack2", 546)
 local SpeedTimeFloat = CreateFloat("Speed Time", 398)
 local FlyUpX2Float = CreateFloat("Fly X2", 440)
+local AutoHealFloat = CreateFloat("Auto Heal", 588)
+local FreezeFloat = CreateFloat("Freeze", 630)
 UpFloat.Hold("Up")
 DownFloat.Hold("Down")
 
@@ -1434,6 +1436,98 @@ end)
 
 local TabMem = CreateTab("Memory")
 CreateHeader(TabMem, "DI CHUYỂN")
+
+-- Auto Heal: local health restoration loop. Server-authoritative games may overwrite it.
+local AutoHealEnabled = false
+local AutoHealConnection = nil
+local function SetAutoHeal(on)
+    AutoHealEnabled = on and true or false
+    AutoHealFloat.SetOn(AutoHealEnabled)
+    if AutoHealConnection then
+        pcall(function() AutoHealConnection:Disconnect() end)
+        AutoHealConnection = nil
+    end
+    if AutoHealEnabled then
+        AutoHealConnection = RunService.Heartbeat:Connect(function()
+            if not AutoHealEnabled or Unloaded then return end
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 and hum.Health < hum.MaxHealth then
+                pcall(function() hum.Health = hum.MaxHealth end)
+            end
+        end)
+        Notify("Auto Heal", "Đã bật hồi máu cục bộ", 3)
+    else
+        Notify("Auto Heal", "Đã tắt", 3)
+    end
+end
+AutoHealFloat.OnTap(function() SetAutoHeal(not AutoHealEnabled) end)
+CreateToggle(TabMem, "Hiện nút nổi Auto Heal", false, function(on) AutoHealFloat.Show(on) end)
+CreateLabel(TabMem, "Auto Heal chỉ thử đặt máu tối đa ở phía client; máy chủ có thể ghi đè.", C.Sub)
+
+-- Freeze marker: highlights the player nearest the screen center locally. It does not immobilize other players.
+local FreezeEnabled = false
+local FreezeHighlight = nil
+local FreezeTarget = nil
+local FreezeConnection = nil
+local function ClearFreezeMarker()
+    if FreezeHighlight then pcall(function() FreezeHighlight:Destroy() end) end
+    FreezeHighlight = nil
+    FreezeTarget = nil
+end
+local function SetFreezeMarker(on)
+    FreezeEnabled = on and true or false
+    FreezeFloat.SetOn(FreezeEnabled)
+    if FreezeConnection then pcall(function() FreezeConnection:Disconnect() end); FreezeConnection = nil end
+    ClearFreezeMarker()
+    if FreezeEnabled then
+        FreezeConnection = RunService.RenderStepped:Connect(function()
+            if not FreezeEnabled or Unloaded then return end
+            local cam = Workspace.CurrentCamera
+            if not cam then return end
+            local vp = cam.ViewportSize
+            local center = Vector2.new(vp.X * 0.5, vp.Y * 0.5)
+            local best, bestDist = nil, math.huge
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+                    local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                    local root = plr.Character:FindFirstChild("HumanoidRootPart")
+                    if hum and hum.Health > 0 and root then
+                        local pos, visible = cam:WorldToViewportPoint(root.Position)
+                        if visible then
+                            local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                            if dist < bestDist then best, bestDist = plr, dist end
+                        end
+                    end
+                end
+            end
+            if best ~= FreezeTarget then
+                ClearFreezeMarker()
+                FreezeTarget = best
+                if best and best.Character then
+                    local ok, h = pcall(function()
+                        local hl = Instance.new("Highlight")
+                        hl.Name = "HyperSun_FreezeMarker"
+                        hl.Adornee = best.Character
+                        hl.FillColor = C.Accent
+                        hl.OutlineColor = Color3.new(1, 1, 1)
+                        hl.FillTransparency = 0.65
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        hl.Parent = ScreenGui
+                        return hl
+                    end)
+                    if ok then FreezeHighlight = h end
+                end
+            end
+        end)
+        Notify("Freeze", "Đã bật đánh dấu mục tiêu giữa tâm ngắm; không đóng băng người chơi thật", 4)
+    else
+        Notify("Freeze", "Đã tắt đánh dấu mục tiêu", 3)
+    end
+end
+FreezeFloat.OnTap(function() SetFreezeMarker(not FreezeEnabled) end)
+CreateToggle(TabMem, "Hiện nút nổi Freeze", false, function(on) FreezeFloat.Show(on) end)
+CreateLabel(TabMem, "Freeze chỉ đánh dấu mục tiêu cục bộ. Đóng băng người chơi khác cần quyền xử lý phía máy chủ của game.", C.Sub)
 
 -- TeleBack: save a location, then return to it with a separate floating button.
 local TeleBackSavedCFrame = nil
@@ -2273,6 +2367,8 @@ pcall(function() SetFullbright(false) end)
 pcall(function() if State.Memory.TeleSky2 then SetTeleSky2(false) end end)
 pcall(function() if State.Memory.FastTalk then SetFastTalk(false) end end)
 pcall(function() if State.Memory.FastAttack then SetFastAttack(false) end end)
+pcall(function() SetAutoHeal(false) end)
+pcall(function() SetFreezeMarker(false) end)
 pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
 for _, c in ipairs(Connections) do pcall(function() c:Disconnect() end) end
 ClearTableCompat(Connections)
