@@ -72,8 +72,9 @@ local FONT_TITLE = Enum.Font.GothamBlack
 local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local WIN_W, WIN_H = 440, 350
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.6 Beta Fix</font>'
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.8 Beta</font>'
 
+local HttpService = game:GetService("HttpService")
 local State = {
 Features = { Apply = false, Aimbot = false, ESP = false, Bypass = false, TeamCheck = false, WallCheck = false },
 ESP = { Skeleton = false, Box = false, Count = false, Line = false, Name = false, Health = false, MaxDist = 2000 },
@@ -92,6 +93,105 @@ DefSpeed = 16, DefJump = 50
 Chams = { Mode = "None" },
 Settings = { Sound = true, Volume = 80 }
 }
+
+-- Settings persistence (executor file API when available; falls back to session memory).
+HS.SettingsFile = "HyperSun_2.8_Beta_Settings.json"
+HS.SavedSettingsCache = nil
+function HS.BuildSettingsSnapshot()
+    return {
+        Player = {
+            Speed = State.Player.Speed, Jump = State.Player.Jump,
+            SpeedOn = State.Player.SpeedOn, JumpOn = State.Player.JumpOn,
+            InfJump = State.Player.InfJump, Noclip = State.Player.Noclip,
+            AntiAFK = State.Player.AntiAFK
+        },
+        Memory = {
+            FlyHeight = State.Memory.FlyHeight, FlySpeed = State.Memory.FlySpeed,
+            TeleSkyHeight = State.Memory.TeleSkyHeight, SpeedTime = State.Memory.SpeedTime,
+            FastTalk = State.Memory.FastTalk, FastAttack = State.Memory.FastAttack
+        },
+        ESP = {
+            Skeleton = State.ESP.Skeleton, Box = State.ESP.Box, Count = State.ESP.Count,
+            Line = State.ESP.Line, Name = State.ESP.Name, Health = State.ESP.Health,
+            MaxDist = State.ESP.MaxDist
+        },
+        Aimbot = {
+            FOV = State.Aimbot.FOV, Smooth = State.Aimbot.Smooth,
+            Head = State.Aimbot.Head, ShowFOV = State.Aimbot.ShowFOV
+        },
+        Under = {
+            Depth = State.Under.Depth, Speed = State.Under.Speed,
+            Hide = State.Under.Hide, Duration = State.Under.Duration
+        },
+        Settings = { Sound = State.Settings.Sound, Volume = State.Settings.Volume }
+    }
+end
+function HS.SaveSettings()
+    local ok, encoded = pcall(function()
+        return HttpService:JSONEncode(HS.BuildSettingsSnapshot())
+    end)
+    if not ok then
+        Notify("HyperSun 2.8 Beta", "Không thể tạo dữ liệu setting", 4)
+        return false
+    end
+    HS.SavedSettingsCache = encoded
+    local wrote = false
+    if type(writefile) == "function" then
+        wrote = pcall(function() writefile(HS.SettingsFile, encoded) end)
+    end
+    Notify("HyperSun 2.8 Beta", wrote and ("Đã lưu setting vào " .. HS.SettingsFile) or "Đã lưu setting trong phiên hiện tại; executor có thể không hỗ trợ writefile", 4)
+    return true
+end
+function HS.LoadSettings()
+    local encoded = nil
+    if type(isfile) == "function" and type(readfile) == "function" then
+        local exists, yes = pcall(function() return isfile(HS.SettingsFile) end)
+        if exists and yes then
+            local ok, data = pcall(function() return readfile(HS.SettingsFile) end)
+            if ok then encoded = data end
+        end
+    end
+    encoded = encoded or HS.SavedSettingsCache
+    if type(encoded) ~= "string" then
+        Notify("HyperSun 2.8 Beta", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
+        return false
+    end
+    local ok, data = pcall(function() return HttpService:JSONDecode(encoded) end)
+    if not ok or type(data) ~= "table" then
+        Notify("HyperSun 2.8 Beta", "File setting không hợp lệ", 4)
+        return false
+    end
+    if type(data.Player) == "table" then
+        for k, v in pairs(data.Player) do if State.Player[k] ~= nil then State.Player[k] = v end end
+    end
+    if type(data.Memory) == "table" then
+        for k, v in pairs(data.Memory) do if State.Memory[k] ~= nil then State.Memory[k] = v end end
+    end
+    if type(data.ESP) == "table" then
+        for k, v in pairs(data.ESP) do if State.ESP[k] ~= nil then State.ESP[k] = v end end
+    end
+    if type(data.Aimbot) == "table" then
+        for k, v in pairs(data.Aimbot) do if State.Aimbot[k] ~= nil then State.Aimbot[k] = v end end
+    end
+    if type(data.Under) == "table" then
+        for k, v in pairs(data.Under) do if State.Under[k] ~= nil then State.Under[k] = v end end
+    end
+    if type(data.Settings) == "table" then
+        for k, v in pairs(data.Settings) do if State.Settings[k] ~= nil then State.Settings[k] = v end end
+    end
+    State.Player.Speed = math.clamp(tonumber(State.Player.Speed) or 16, 1, 10000)
+    State.Player.Jump = math.clamp(tonumber(State.Player.Jump) or 50, 1, 500)
+    local _, hum = GetHRP()
+    if hum then
+        pcall(function()
+            if State.Player.SpeedOn then hum.WalkSpeed = State.Player.Speed end
+            if State.Player.JumpOn then hum.JumpPower = State.Player.Jump end
+        end)
+    end
+    if HS.SetFlySpeed and State.Memory.FlyEnabled then pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end) end
+    Notify("HyperSun 2.8 Beta", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
+    return true
+end
 
 local Connections = {}
 local Drawings = {}
@@ -335,13 +435,13 @@ end
 task.spawn(function()
 task.wait(4)
 if Unloaded then return end
-Notify("HyperSun loaded", "Hyper Sun 2.6 Beta Fix", 5)
+Notify("HyperSun loaded", "Hyper Sun 2.8 Beta", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("Lib loading", "Hyper Sun 2.6 Beta Fix", 5)
+Notify("Lib loading", "Hyper Sun 2.8 Beta", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("64bit", "Hyper Sun 2.6 Beta Fix", 5)
+Notify("64bit", "Hyper Sun 2.8 Beta", 5)
 if not HasDrawing then
 task.wait(5)
 Notify("Cảnh báo", "Executor không có Drawing: ESP/FOV tắt", 5)
@@ -797,7 +897,7 @@ end)
 CreateToggle(HS.TabFunc, "Patched AntiBan (UI only)", false, function(s)
 State.Features.AntiBanUI = s
 if s then
-Notify("Patched AntiBan 2.6 Beta Fix", "Trạng thái giao diện; không bảo đảm chống ban", 5)
+Notify("Patched AntiBan 2.8 Beta", "Trạng thái giao diện; không bảo đảm chống ban", 5)
 else
 Notify("AntiBan UI đã tắt", "Không có bảo vệ chống ban thực sự", 4)
 end
@@ -812,7 +912,7 @@ CreateLabel(HS.TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
 CreateLabel(HS.TabFunc, "Anti Kick: N/A", C.Sub)
 CreateLabel(HS.TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
 CreateLabel(HS.TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
-CreateLabel(HS.TabFunc, "By: Hyper Sun 2.6 Beta Fix", C.Text)
+CreateLabel(HS.TabFunc, "By: Hyper Sun 2.8 Beta", C.Text)
 
 CreateHeader(HS.TabFunc, "BỘ LỌC MỤC TIÊU")
 CreateToggle(HS.TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
@@ -1525,9 +1625,9 @@ function HS.SetFreezeMarker(on)
                 HS.ClearFreezeMarker()
             end
         end)
-        Notify("Hyper Sun 2.6 Beta Fix · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
+        Notify("Hyper Sun 2.8 Beta · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
     else
-        Notify("Hyper Sun 2.6 Beta Fix · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
+        Notify("Hyper Sun 2.8 Beta · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
     end
 end
 HS.FreezeFloat.OnTap(function() HS.SetFreezeMarker(not HS.FreezeEnabled) end)
@@ -1552,7 +1652,7 @@ function HS.SetTeleX3(on)
     HS.TeleX3Float.SetOn(HS.TeleX3Enabled)
     HS.ClearTeleX3()
     if not HS.TeleX3Enabled then
-        Notify("HyperSun 2.6 Beta Fix · Tele X3", "Đã tắt dù lượn và khôi phục tư thế", 3)
+        Notify("HyperSun 2.8 Beta · Tele X3", "Đã tắt dù lượn và khôi phục tư thế", 3)
         return
     end
     local char = LocalPlayer.Character
@@ -1561,7 +1661,7 @@ function HS.SetTeleX3(on)
     if not char or not hum or not root then
         HS.TeleX3Enabled = false
         HS.TeleX3Float.SetOn(false)
-        Notify("HyperSun 2.6 Beta Fix · Tele X3", "Nhân vật chưa sẵn sàng", 4)
+        Notify("HyperSun 2.8 Beta · Tele X3", "Nhân vật chưa sẵn sàng", 4)
         return
     end
     for _, motor in ipairs(char:GetDescendants()) do
@@ -1624,7 +1724,7 @@ function HS.SetTeleX3(on)
     part("HarnessBack", Vector3.new(1.0, 1.25, 0.22), at(0, 1.25, 0.45), Color3.fromRGB(22, 22, 26), Enum.Material.SmoothPlastic)
     part("HarnessRedStripe", Vector3.new(0.12, 1.0, 0.06), at(0, 1.25, 0.31), Color3.fromRGB(240, 28, 45), Enum.Material.Neon)
     for _, obj in ipairs(HS.TeleX3Objects) do weldToRoot(obj) end
-    Notify("HyperSun 2.6 Beta Fix · Tele X3", "Đã bật dù lượn phong cách battle-royale (hiển thị cục bộ)", 4)
+    Notify("HyperSun 2.8 Beta · Tele X3", "Đã bật dù lượn phong cách battle-royale (hiển thị cục bộ)", 4)
 end
 HS.TeleX3Float.OnTap(function() HS.SetTeleX3(not HS.TeleX3Enabled) end)
 CreateHeader(HS.TabFly, "TELE BACKPACK")
@@ -1701,7 +1801,7 @@ function HS.SetTeleBoard(on, allPlayers)
     if allPlayers ~= nil then HS.TeleBoardAll = allPlayers and true or false end
     HS.ClearTeleBoards()
     if not HS.TeleBoardEnabled then
-        Notify("HyperSun 2.6 Beta Fix · Tele Board", "Đã tắt ván trượt cầu vồng", 3)
+        Notify("HyperSun 2.8 Beta · Tele Board", "Đã tắt ván trượt cầu vồng", 3)
         return
     end
     local function refresh()
@@ -1727,7 +1827,7 @@ function HS.SetTeleBoard(on, allPlayers)
     end
     refresh()
     HS.TeleBoardConnection = RunService.Heartbeat:Connect(refresh)
-    Notify("HyperSun 2.6 Beta Fix · Tele Board", HS.TeleBoardAll and "Ván trượt hiển thị dưới mọi người chơi trên máy bạn" or "Ván trượt chỉ hiển thị dưới chân bạn", 4)
+    Notify("HyperSun 2.8 Beta · Tele Board", HS.TeleBoardAll and "Ván trượt hiển thị dưới mọi người chơi trên máy bạn" or "Ván trượt chỉ hiển thị dưới chân bạn", 4)
 end
 CreateHeader(HS.TabFly, "TELE BOARD")
 CreateButton(HS.TabFly, "Tele Board · Chỉ riêng tôi", function() HS.SetTeleBoard(not HS.TeleBoardEnabled, false) end)
@@ -2258,7 +2358,13 @@ HS.FlyUpX2Toggle = CreateToggle(HS.TabMem, "Fly UpX2", false, HS.SetFlyUpX2)
 CreateToggle(HS.TabMem, "Hiện nút nổi Fly X2", false, function(on) HS.FlyUpX2Float.Show(on) end)
 HS.FlyUpX2Float.OnTap(function() HS.SetFlyUpX2(not State.Memory.FlyUpX2) end)
 
-CreateSlider(HS.TabMem, "WalkSpeed", 1, 300, 16, function(v) State.Player.Speed = v end)
+CreateSlider(HS.TabMem, "WalkSpeed (tối đa 10000)", 1, 10000, 16, function(v)
+State.Player.Speed = math.clamp(tonumber(v) or 16, 1, 10000)
+if State.Player.SpeedOn then
+local _, speedHum = GetHRP()
+if speedHum then pcall(function() speedHum.WalkSpeed = State.Player.Speed end) end
+end
+end)
 CreateToggle(HS.TabMem, "Bật WalkSpeed", false, function(s)
 local _, hum = GetHRP()
 if s then
@@ -2280,6 +2386,10 @@ State.Player.JumpOn = false
 if hum then pcall(function() hum.JumpPower = State.Player.DefJump end) end
 end
 end)
+CreateHeader(HS.TabMem, "LƯU CẤU HÌNH")
+CreateLabel(HS.TabMem, "Lưu setting để dùng lại lần chạy sau (nếu Delta hỗ trợ file API).", C.Sub)
+CreateButton(HS.TabMem, "Lưu setting hiện tại", function() HS.SaveSettings() end)
+CreateButton(HS.TabMem, "Nạp setting đã lưu", function() HS.LoadSettings() end)
 CreateToggle(HS.TabMem, "Infinite Jump", false, function(s) State.Player.InfJump = s end)
 CreateToggle(HS.TabMem, "Noclip", false, function(s) State.Player.Noclip = s end)
 
@@ -2599,7 +2709,7 @@ function HS.SafeFeatureCall(featureName, fn, ...)
     local args = {...}
     local ok, err = pcall(function() fn(table.unpack(args)) end)
     if not ok then
-        warn("[Hyper Sun 2.6 Beta Fix] " .. tostring(featureName) .. ": " .. tostring(err))
+        warn("[Hyper Sun 2.8 Beta] " .. tostring(featureName) .. ": " .. tostring(err))
         if not HS.FeatureErrorShown[featureName] then
             HS.FeatureErrorShown[featureName] = true
             pcall(function()
