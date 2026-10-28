@@ -72,7 +72,7 @@ local FONT_TITLE = Enum.Font.GothamBlack
 local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local WIN_W, WIN_H = 440, 350
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.8 Beta</font>'
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.8 Elite Beta</font>'
 
 local HttpService = game:GetService("HttpService")
 local State = {
@@ -131,7 +131,7 @@ function HS.SaveSettings()
         return HttpService:JSONEncode(HS.BuildSettingsSnapshot())
     end)
     if not ok then
-        Notify("HyperSun 2.8 Beta", "Không thể tạo dữ liệu setting", 4)
+        Notify("HyperSun 2.8 Elite Beta", "Không thể tạo dữ liệu setting", 4)
         return false
     end
     HS.SavedSettingsCache = encoded
@@ -139,7 +139,7 @@ function HS.SaveSettings()
     if type(writefile) == "function" then
         wrote = pcall(function() writefile(HS.SettingsFile, encoded) end)
     end
-    Notify("HyperSun 2.8 Beta", wrote and ("Đã lưu setting vào " .. HS.SettingsFile) or "Đã lưu setting trong phiên hiện tại; executor có thể không hỗ trợ writefile", 4)
+    Notify("HyperSun 2.8 Elite Beta", wrote and ("Đã lưu setting vào " .. HS.SettingsFile) or "Đã lưu setting trong phiên hiện tại; executor có thể không hỗ trợ writefile", 4)
     return true
 end
 function HS.LoadSettings()
@@ -153,12 +153,12 @@ function HS.LoadSettings()
     end
     encoded = encoded or HS.SavedSettingsCache
     if type(encoded) ~= "string" then
-        Notify("HyperSun 2.8 Beta", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
+        Notify("HyperSun 2.8 Elite Beta", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
         return false
     end
     local ok, data = pcall(function() return HttpService:JSONDecode(encoded) end)
     if not ok or type(data) ~= "table" then
-        Notify("HyperSun 2.8 Beta", "File setting không hợp lệ", 4)
+        Notify("HyperSun 2.8 Elite Beta", "File setting không hợp lệ", 4)
         return false
     end
     if type(data.Player) == "table" then
@@ -189,7 +189,7 @@ function HS.LoadSettings()
         end)
     end
     if HS.SetFlySpeed and State.Memory.FlyEnabled then pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end) end
-    Notify("HyperSun 2.8 Beta", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
+    Notify("HyperSun 2.8 Elite Beta", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
     return true
 end
 
@@ -435,13 +435,13 @@ end
 task.spawn(function()
 task.wait(4)
 if Unloaded then return end
-Notify("HyperSun loaded", "Hyper Sun 2.8 Beta", 5)
+Notify("HyperSun loaded", "Hyper Sun 2.8 Elite Beta", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("Lib loading", "Hyper Sun 2.8 Beta", 5)
+Notify("Lib loading", "Hyper Sun 2.8 Elite Beta", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("64bit", "Hyper Sun 2.8 Beta", 5)
+Notify("64bit", "Hyper Sun 2.8 Elite Beta", 5)
 if not HasDrawing then
 task.wait(5)
 Notify("Cảnh báo", "Executor không có Drawing: ESP/FOV tắt", 5)
@@ -897,7 +897,7 @@ end)
 CreateToggle(HS.TabFunc, "Patched AntiBan (UI only)", false, function(s)
 State.Features.AntiBanUI = s
 if s then
-Notify("Patched AntiBan 2.8 Beta", "Trạng thái giao diện; không bảo đảm chống ban", 5)
+Notify("Patched AntiBan 2.8 Elite Beta", "Trạng thái giao diện; không bảo đảm chống ban", 5)
 else
 Notify("AntiBan UI đã tắt", "Không có bảo vệ chống ban thực sự", 4)
 end
@@ -912,7 +912,7 @@ CreateLabel(HS.TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
 CreateLabel(HS.TabFunc, "Anti Kick: N/A", C.Sub)
 CreateLabel(HS.TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
 CreateLabel(HS.TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
-CreateLabel(HS.TabFunc, "By: Hyper Sun 2.8 Beta", C.Text)
+CreateLabel(HS.TabFunc, "By: Hyper Sun 2.8 Elite Beta", C.Text)
 
 CreateHeader(HS.TabFunc, "BỘ LỌC MỤC TIÊU")
 CreateToggle(HS.TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
@@ -1156,7 +1156,7 @@ HS.TeleWallFloat = HS.CreateFloat("Tele Wall", 356)
 HS.TeleWall2Float = HS.CreateFloat("Tele Wall 2", 378)
 HS.LockNVFloat = HS.CreateFloat("LockNV", 400)
 HS.TeleSky2Float = HS.CreateFloat("TeleSky2", 420)
-HS.GhostFloat = HS.CreateFloat("Ghost", 462)
+HS.GhostFloat = HS.CreateFloat("TeleGhost", 462)
 HS.TeleBack1Float = HS.CreateFloat("TeleBack1", 504)
 HS.TeleBack2Float = HS.CreateFloat("TeleBack2", 546)
 HS.SpeedTimeFloat = HS.CreateFloat("Speed Time", 398)
@@ -1289,6 +1289,14 @@ end)
 CreateSlider(HS.TabFly, "Nhấc lên khi bật Fly (0 = tắt)", 0, 300, 5, function(v) State.Memory.FlyHeight = v end)
 CreateSlider(HS.TabFly, "Tốc độ Fly", 1, 500, 50, function(v) State.Memory.FlySpeed = v end)
 HS.FlyFloat.OnTap(function() HS.SetFly(not State.Memory.FlyEnabled) end)
+
+CreateHeader(HS.TabFly, "TELE GHOST")
+CreateButton(HS.TabFly, "Tạo nút nổi TeleGhost", function()
+    HS.GhostFloat.Show(true)
+    Notify("HyperSun 2.8 Elite Beta · TeleGhost", "Đã hiện nút nổi TeleGhost", 3)
+end)
+CreateButton(HS.TabFly, "Bật / Tắt TeleGhost", function() HS.SetGhost(not HS.GhostEnabled) end)
+CreateLabel(HS.TabFly, "Bật để điều khiển bản sao; tắt để xác nhập hồn tại vị trí bản sao. Hiệu ứng chỉ được xử lý ở máy bạn.", C.Sub)
 
 CreateHeader(HS.TabFly, "TELE PLAYER")
 HS.TeleTarget = nil
@@ -1625,9 +1633,9 @@ function HS.SetFreezeMarker(on)
                 HS.ClearFreezeMarker()
             end
         end)
-        Notify("Hyper Sun 2.8 Beta · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
+        Notify("Hyper Sun 2.8 Elite Beta · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
     else
-        Notify("Hyper Sun 2.8 Beta · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
+        Notify("Hyper Sun 2.8 Elite Beta · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
     end
 end
 HS.FreezeFloat.OnTap(function() HS.SetFreezeMarker(not HS.FreezeEnabled) end)
@@ -1652,7 +1660,7 @@ function HS.SetTeleX3(on)
     HS.TeleX3Float.SetOn(HS.TeleX3Enabled)
     HS.ClearTeleX3()
     if not HS.TeleX3Enabled then
-        Notify("HyperSun 2.8 Beta · Tele X3", "Đã tắt dù lượn và khôi phục tư thế", 3)
+        Notify("HyperSun 2.8 Elite Beta · Tele X3", "Đã tắt dù lượn và khôi phục tư thế", 3)
         return
     end
     local char = LocalPlayer.Character
@@ -1661,7 +1669,7 @@ function HS.SetTeleX3(on)
     if not char or not hum or not root then
         HS.TeleX3Enabled = false
         HS.TeleX3Float.SetOn(false)
-        Notify("HyperSun 2.8 Beta · Tele X3", "Nhân vật chưa sẵn sàng", 4)
+        Notify("HyperSun 2.8 Elite Beta · Tele X3", "Nhân vật chưa sẵn sàng", 4)
         return
     end
     for _, motor in ipairs(char:GetDescendants()) do
@@ -1724,7 +1732,7 @@ function HS.SetTeleX3(on)
     part("HarnessBack", Vector3.new(1.0, 1.25, 0.22), at(0, 1.25, 0.45), Color3.fromRGB(22, 22, 26), Enum.Material.SmoothPlastic)
     part("HarnessRedStripe", Vector3.new(0.12, 1.0, 0.06), at(0, 1.25, 0.31), Color3.fromRGB(240, 28, 45), Enum.Material.Neon)
     for _, obj in ipairs(HS.TeleX3Objects) do weldToRoot(obj) end
-    Notify("HyperSun 2.8 Beta · Tele X3", "Đã bật dù lượn phong cách battle-royale (hiển thị cục bộ)", 4)
+    Notify("HyperSun 2.8 Elite Beta · Tele X3", "Đã bật dù lượn phong cách battle-royale (hiển thị cục bộ)", 4)
 end
 HS.TeleX3Float.OnTap(function() HS.SetTeleX3(not HS.TeleX3Enabled) end)
 CreateHeader(HS.TabFly, "TELE BACKPACK")
@@ -1801,7 +1809,7 @@ function HS.SetTeleBoard(on, allPlayers)
     if allPlayers ~= nil then HS.TeleBoardAll = allPlayers and true or false end
     HS.ClearTeleBoards()
     if not HS.TeleBoardEnabled then
-        Notify("HyperSun 2.8 Beta · Tele Board", "Đã tắt ván trượt cầu vồng", 3)
+        Notify("HyperSun 2.8 Elite Beta · Tele Board", "Đã tắt ván trượt cầu vồng", 3)
         return
     end
     local function refresh()
@@ -1827,7 +1835,7 @@ function HS.SetTeleBoard(on, allPlayers)
     end
     refresh()
     HS.TeleBoardConnection = RunService.Heartbeat:Connect(refresh)
-    Notify("HyperSun 2.8 Beta · Tele Board", HS.TeleBoardAll and "Ván trượt hiển thị dưới mọi người chơi trên máy bạn" or "Ván trượt chỉ hiển thị dưới chân bạn", 4)
+    Notify("HyperSun 2.8 Elite Beta · Tele Board", HS.TeleBoardAll and "Ván trượt hiển thị dưới mọi người chơi trên máy bạn" or "Ván trượt chỉ hiển thị dưới chân bạn", 4)
 end
 CreateHeader(HS.TabFly, "TELE BOARD")
 CreateButton(HS.TabFly, "Tele Board · Chỉ riêng tôi", function() HS.SetTeleBoard(not HS.TeleBoardEnabled, false) end)
@@ -1887,7 +1895,7 @@ function HS.SetGhost(on)
         local realRoot = real and real:FindFirstChild("HumanoidRootPart")
         local realHum = real and real:FindFirstChildOfClass("Humanoid")
         if not real or not realRoot or not realHum then
-            Notify("Ghost", "Không tìm thấy nhân vật hợp lệ", 4)
+            Notify("HyperSun 2.8 Elite Beta · TeleGhost", "Không tìm thấy nhân vật hợp lệ", 4)
             HS.GhostFloat.SetOn(false)
             return
         end
@@ -1900,7 +1908,7 @@ function HS.SetGhost(on)
         end)
         real.Archivable = oldArchivable
         if not ok or not clone then
-            Notify("Ghost", "Không thể tạo bản sao nhân vật", 5)
+            Notify("HyperSun 2.8 Elite Beta · TeleGhost", "Không thể tạo bản sao nhân vật", 5)
             HS.GhostFloat.SetOn(false)
             return
         end
@@ -1919,7 +1927,7 @@ function HS.SetGhost(on)
         local cloneHum = clone:FindFirstChildOfClass("Humanoid")
         if not cloneRoot or not cloneHum then
             clone:Destroy()
-            Notify("Ghost", "Bản sao thiếu Humanoid hoặc HumanoidRootPart", 4)
+            Notify("HyperSun 2.8 Elite Beta · TeleGhost", "Bản sao thiếu Humanoid hoặc HumanoidRootPart", 4)
             HS.GhostFloat.SetOn(false)
             return
         end
@@ -1950,8 +1958,8 @@ function HS.SetGhost(on)
         HS.GhostRoot = cloneRoot
         HS.GhostHumanoid = cloneHum
         cloneHum.WalkSpeed = realHum.WalkSpeed
-        cloneHum.JumpPower = 0
-        cloneHum.JumpHeight = 0
+        cloneHum.JumpPower = realHum.JumpPower
+        cloneHum.JumpHeight = realHum.JumpHeight
         cloneHum.AutoRotate = true
         pcall(function() cloneHum:UnequipTools() end)
         HS.GhostEnabled = true
@@ -1978,14 +1986,19 @@ function HS.SetGhost(on)
                 local worldMove = rightFlat * move.X + forwardFlat * -move.Z
                 HS.GhostHumanoid:Move(worldMove, false)
             end
-            HS.GhostHumanoid.Jump = false
+            -- Transfer jump input from the anchored original body to the controllable ghost clone.
+            local originalHum = HS.GhostRealCharacter and HS.GhostRealCharacter:FindFirstChildOfClass("Humanoid")
+            if originalHum and originalHum.Jump then
+                HS.GhostHumanoid.Jump = true
+                originalHum.Jump = false
+            end
         end)
         if camera then
             camera.CameraType = Enum.CameraType.Custom
             camera.CameraSubject = cloneHum
         end
         HS.GhostFloat.SetOn(true)
-        Notify("Ghost", "Ghost phân thân đã bật; chỉ di chuyển bản sao ở phía client", 5)
+        Notify("HyperSun 2.8 Elite Beta · TeleGhost", "Đã tách hồn khỏi xác; di chuyển bản sao cục bộ", 5)
     else
         HS.GhostEnabled = false
         if HS.GhostMoveConnection then pcall(function() HS.GhostMoveConnection:Disconnect() end); HS.GhostMoveConnection = nil end
@@ -2012,15 +2025,15 @@ function HS.SetGhost(on)
         HS.GhostControls, HS.GhostRealRootCFrame, HS.GhostRealAnchored, HS.GhostRealAutoRotate = nil, nil, nil, nil
         HS.GhostCameraSubject, HS.GhostCameraType = nil, nil
         HS.GhostFloat.SetOn(false)
-        Notify("Ghost", "Ghost đã tắt; đã khôi phục nhân vật thật", 4)
+        Notify("HyperSun 2.8 Elite Beta · TeleGhost", "Đã nhập hồn; xác đứng tại vị trí hồn kết thúc", 4)
     end
 end
 HS.GhostFloat.OnTap(function() HS.SetGhost(not HS.GhostEnabled) end)
 HS.TeleBack1Float.OnTap(HS.SaveTeleBack)
 HS.TeleBack2Float.OnTap(HS.ReturnTeleBack)
-CreateToggle(HS.TabMem, "Ghost · Phân thân điều khiển (Beta)", false, HS.SetGhost)
+CreateToggle(HS.TabMem, "TeleGhost · Phân thân điều khiển (Beta)", false, HS.SetGhost)
 CreateLabel(HS.TabMem, "Bản sao được điều khiển cục bộ; không đảm bảo ẩn nhân vật thật khỏi máy chủ hoặc người chơi khác.", C.Sub)
-CreateToggle(HS.TabMem, "Hiện nút nổi Ghost", false, function(on) HS.GhostFloat.Show(on) end)
+CreateToggle(HS.TabMem, "Hiện nút nổi TeleGhost", false, function(on) HS.GhostFloat.Show(on) end)
 CreateToggle(HS.TabMem, "Hiện nút nổi TeleBack1 (lưu vị trí)", false, function(on) HS.TeleBack1Float.Show(on) end)
 CreateToggle(HS.TabMem, "Hiện nút nổi TeleBack2 (quay lại)", false, function(on) HS.TeleBack2Float.Show(on) end)
 CreateButton(HS.TabMem, "TeleBack1 · Lưu vị trí", HS.SaveTeleBack)
@@ -2709,7 +2722,7 @@ function HS.SafeFeatureCall(featureName, fn, ...)
     local args = {...}
     local ok, err = pcall(function() fn(table.unpack(args)) end)
     if not ok then
-        warn("[Hyper Sun 2.8 Beta] " .. tostring(featureName) .. ": " .. tostring(err))
+        warn("[Hyper Sun 2.8 Elite Beta] " .. tostring(featureName) .. ": " .. tostring(err))
         if not HS.FeatureErrorShown[featureName] then
             HS.FeatureErrorShown[featureName] = true
             pcall(function()
