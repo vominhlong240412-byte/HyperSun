@@ -72,7 +72,7 @@ local FONT_TITLE = Enum.Font.GothamBlack
 local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local WIN_W, WIN_H = 440, 350
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">2.9 Beta Fix</font>'
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.0 Elite</font>'
 
 local HttpService = game:GetService("HttpService")
 local Notify, GetHRP
@@ -97,7 +97,7 @@ Settings = { Sound = true, Volume = 80 }
 
 -- Settings persistence (executor file API when available; falls back to session memory).
 HS.SettingsFolder = "HyperSun"
-HS.SettingsFile = "HyperSun/HyperSun_2.9_Beta_Settings.json"
+HS.SettingsFile = "HyperSun/HyperSun_3.0_Elite_Settings.json"
 HS.SavedSettingsCache = nil
 function HS.BuildSettingsSnapshot()
     return {
@@ -133,7 +133,7 @@ function HS.SaveSettings()
         return HttpService:JSONEncode(HS.BuildSettingsSnapshot())
     end)
     if not ok then
-        Notify("HyperSun 2.9 Beta Fix", "Không thể tạo dữ liệu setting", 4)
+        Notify("HyperSun 3.0 Elite", "Không thể tạo dữ liệu setting", 4)
         return false
     end
     HS.SavedSettingsCache = encoded
@@ -154,9 +154,9 @@ function HS.SaveSettings()
         end)
     end
     if wrote then
-        Notify("HyperSun 2.9 Beta Fix", "Đã lưu và kiểm tra file setting: " .. HS.SettingsFile, 4)
+        Notify("HyperSun 3.0 Elite", "Đã lưu và kiểm tra file setting: " .. HS.SettingsFile, 4)
     else
-        Notify("HyperSun 2.9 Beta Fix", "Không thể ghi file. Hãy kiểm tra file API/quyền của executor.", 5)
+        Notify("HyperSun 3.0 Elite", "Không thể ghi file. Hãy kiểm tra file API/quyền của executor.", 5)
     end
     return wrote
 end
@@ -173,12 +173,12 @@ function HS.LoadSettings()
         encoded = HS.SavedSettingsCache
     end
     if type(encoded) ~= "string" then
-        Notify("HyperSun 2.9 Beta Fix", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
+        Notify("HyperSun 3.0 Elite", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
         return false
     end
     local ok, data = pcall(function() return HttpService:JSONDecode(encoded) end)
     if not ok or type(data) ~= "table" then
-        Notify("HyperSun 2.9 Beta Fix", "File setting không hợp lệ", 4)
+        Notify("HyperSun 3.0 Elite", "File setting không hợp lệ", 4)
         return false
     end
     if type(data.Player) == "table" then
@@ -209,7 +209,7 @@ function HS.LoadSettings()
         end)
     end
     if HS.SetFlySpeed and State.Memory.FlyEnabled then pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end) end
-    Notify("HyperSun 2.9 Beta Fix", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
+    Notify("HyperSun 3.0 Elite", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
     return true
 end
 
@@ -455,13 +455,13 @@ end
 task.spawn(function()
 task.wait(4)
 if Unloaded then return end
-Notify("HyperSun loaded", "Hyper Sun 2.9 Beta Fix", 5)
+Notify("HyperSun 3.0 Elite loaded", "✦ Hyper Sun 3.0 Elite — Ready", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("Lib loading", "Hyper Sun 2.9 Beta Fix", 5)
+Notify("Lib loading", "Hyper Sun 3.0 Elite — OK", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("64bit", "Hyper Sun 2.9 Beta Fix", 5)
+Notify("64bit", "Hyper Sun 3.0 Elite — 64bit OK", 5)
 if not HasDrawing then
 task.wait(5)
 Notify("Cảnh báo", "Executor không có Drawing: ESP/FOV tắt", 5)
@@ -616,7 +616,7 @@ task.spawn(function()
         BackgroundTransparency = 1, Text = "", RichText = true, TextColor3 = Color3.new(1,1,1),
         Font = Enum.Font.GothamBlack, TextSize = 22, TextWrapped = true, ZIndex = 81
     }, splash)
-    local full = "Hyper Sun 2.3 ELITE"
+    local full = "Hyper Sun 3.0 Elite"
     for i = 1, #full do
         if Unloaded or not splash.Parent then break end
         local part = string.sub(full, 1, i)
@@ -934,7 +934,7 @@ CreateLabel(HS.TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
 CreateLabel(HS.TabFunc, "Anti Kick: N/A", C.Sub)
 CreateLabel(HS.TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
 CreateLabel(HS.TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
-CreateLabel(HS.TabFunc, "By: Hyper Sun 2.9 Beta Fix", C.Text)
+CreateLabel(HS.TabFunc, "By: Hyper Sun 3.0 Elite", C.Text)
 
 CreateHeader(HS.TabFunc, "BỘ LỌC MỤC TIÊU")
 CreateToggle(HS.TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
@@ -2681,7 +2681,7 @@ CreateSlider(HS.TabSet, "Cỡ menu (%)", 50, 160, math.floor(HS.startScale * 100
 CreateButton(HS.TabSet, "Đưa menu về giữa màn hình", function()
 Main.Position = UDim2.new(0.5, 0, 0.5, 0)
 end)
-CreateLabel(HS.TabSet, "Phiên bản: " .. TITLE_RICH)
+CreateLabel(HS.TabSet, 'Phiên bản: <font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.0 Elite</font>')
 
 CreateHeader(HS.TabSet, "HỆ THỐNG")
 
@@ -2744,11 +2744,11 @@ function HS.SafeFeatureCall(featureName, fn, ...)
     local args = {...}
     local ok, err = pcall(function() fn(table.unpack(args)) end)
     if not ok then
-        warn("[Hyper Sun 2.9 Beta Fix] " .. tostring(featureName) .. ": " .. tostring(err))
+        warn("[Hyper Sun 3.0 Elite] " .. tostring(featureName) .. ": " .. tostring(err))
         if not HS.FeatureErrorShown[featureName] then
             HS.FeatureErrorShown[featureName] = true
             pcall(function()
-                Notify("HyperSun · Lỗi chức năng", tostring(featureName) .. ": " .. tostring(err), 8)
+                Notify("HyperSun 3.0 · Lỗi chức năng", tostring(featureName) .. ": " .. tostring(err), 8)
             end)
         end
     end
@@ -2822,3 +2822,477 @@ end)
 Connections[#Connections + 1] = LocalPlayer.OnTeleport:Connect(function()
 pcall(HS.Unload)
 end)
+
+-- ════════════════════════════════════════════════════════════════
+--  HYPER SUN 3.0 ELITE — PATCH BLOCK
+--  Thêm trực tiếp vào file gốc (không xóa 1 dòng nào ở trên)
+--  1. Injector 1.0 panel
+--  2. HitFly (tab AimBot)
+--  3. Chỉnh màu giao diện (tab Setting)
+-- ════════════════════════════════════════════════════════════════
+
+-- ── Màu themes ──────────────────────────────────────────────────
+local HS_THEMES = {
+    ["Đen-Đỏ"] = {
+        Panel   = Color3.fromRGB(10,  10,  13),
+        Item    = Color3.fromRGB(28,  12,  16),
+        Tab     = Color3.fromRGB(38,  10,  15),
+        Accent  = Color3.fromRGB(255, 35,  55),
+        Off     = Color3.fromRGB(55,  35,  39),
+        Grad0   = Color3.fromRGB(50,  8,   16),
+        Grad1   = Color3.fromRGB(7,   7,   10),
+        Stroke  = Color3.fromRGB(255, 45,  65),
+        TitleA  = "#FF334D",
+        TitleB  = "#FFFFFF",
+    },
+    ["Trắng-Xanh"] = {
+        Panel   = Color3.fromRGB(230, 240, 255),
+        Item    = Color3.fromRGB(200, 220, 255),
+        Tab     = Color3.fromRGB(180, 210, 255),
+        Accent  = Color3.fromRGB(30,  100, 255),
+        Off     = Color3.fromRGB(160, 185, 220),
+        Grad0   = Color3.fromRGB(210, 230, 255),
+        Grad1   = Color3.fromRGB(240, 245, 255),
+        Stroke  = Color3.fromRGB(50,  120, 255),
+        TitleA  = "#1A6AFF",
+        TitleB  = "#003399",
+    },
+    ["Tím-Hồng"] = {
+        Panel   = Color3.fromRGB(18,  10,  28),
+        Item    = Color3.fromRGB(40,  18,  55),
+        Tab     = Color3.fromRGB(55,  18,  70),
+        Accent  = Color3.fromRGB(220, 60,  220),
+        Off     = Color3.fromRGB(80,  35,  90),
+        Grad0   = Color3.fromRGB(55,  10,  70),
+        Grad1   = Color3.fromRGB(10,  6,   18),
+        Stroke  = Color3.fromRGB(230, 80,  230),
+        TitleA  = "#DD3DDD",
+        TitleB  = "#FF9EFF",
+    },
+}
+
+-- Áp dụng theme lên toàn bộ giao diện
+local function ApplyTheme(name)
+    local t = HS_THEMES[name]
+    if not t then return end
+
+    -- Cập nhật bảng màu C (dùng lại biến C từ script gốc)
+    C.Panel  = t.Panel
+    C.Item   = t.Item
+    C.Tab    = t.Tab
+    C.Accent = t.Accent
+    C.Off    = t.Off
+
+    -- Cập nhật tất cả Frame/Button theo màu theme mới
+    local gui = Root:FindFirstChild("HyperSunUI")
+    if not gui then return end
+
+    -- Hàm đệ quy quét toàn bộ con
+    local function Scan(inst)
+        for _, child in ipairs(inst:GetDescendants()) do
+            pcall(function()
+                -- Buttons/Frames có màu Panel
+                if child:IsA("Frame") or child:IsA("TextButton") then
+                    local bg = child.BackgroundColor3
+                    -- So khớp theo độ sáng/nhóm màu (gần đúng) rồi gán
+                    local r, g, b = bg.R, bg.G, bg.B
+                    -- Panel group (tối)
+                    if r < 0.18 and g < 0.1 and b < 0.1 then
+                        child.BackgroundColor3 = t.Panel
+                    -- Item group
+                    elseif r < 0.14 and g < 0.07 and b < 0.08 then
+                        child.BackgroundColor3 = t.Item
+                    -- Tab group
+                    elseif r < 0.16 and g < 0.05 then
+                        child.BackgroundColor3 = t.Tab
+                    -- Accent group
+                    elseif r > 0.9 and g < 0.2 and b < 0.25 then
+                        child.BackgroundColor3 = t.Accent
+                    -- Off group
+                    elseif r < 0.25 and g < 0.15 then
+                        child.BackgroundColor3 = t.Off
+                    end
+                end
+                -- UIStroke accent
+                if child:IsA("UIStroke") then
+                    local sc = child.Color
+                    if sc.R > 0.85 and sc.G < 0.3 then
+                        child.Color = t.Stroke
+                    end
+                end
+                -- UIGradient main panel
+                if child:IsA("UIGradient") then
+                    child.Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, t.Grad0),
+                        ColorSequenceKeypoint.new(1, t.Grad1),
+                    })
+                end
+                -- TextLabel Accent color
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    local tc = child.TextColor3
+                    if tc.R > 0.85 and tc.G < 0.25 then
+                        child.TextColor3 = t.Accent
+                    end
+                end
+            end)
+        end
+    end
+    Scan(gui)
+
+    -- Cập nhật tiêu đề
+    pcall(function()
+        for _, v in ipairs(gui:GetDescendants()) do
+            if v:IsA("TextLabel") and v.RichText and v.Text:find("HyperSun") then
+                v.Text = '<font color="' .. t.TitleA .. '">✦ HyperSun</font> <font color="' .. t.TitleB .. '">3.0 Elite</font>'
+            end
+        end
+    end)
+
+    Notify("HyperSun 3.0 Elite · Màu", "Đã áp dụng giao diện: " .. name, 4)
+end
+
+-- Thêm section Chỉnh Màu vào tab Setting
+do
+    CreateHeader(HS.TabSet, "CHỈNH MÀU GIAO DIỆN")
+    CreateLabel(HS.TabSet, "Chọn bộ màu ưa thích. Áp dụng ngay lập tức.", C.Sub)
+
+    local themeNames = { "Đen-Đỏ", "Trắng-Xanh", "Tím-Hồng" }
+    local themeToggles = {}
+
+    for _, name in ipairs(themeNames) do
+        local t = HS_THEMES[name]
+        -- Nút màu đặc biệt: có viền màu accent của theme đó
+        local row = Create("TextButton", {
+            Size = UDim2.new(1, 0, 0, 44),
+            BackgroundColor3 = t.Panel,
+            BackgroundTransparency = 0.1,
+            Text = "",
+            AutoButtonColor = false,
+        }, HS.TabSet)
+        Create("UICorner", { CornerRadius = UDim.new(0, 10) }, row)
+        Create("UIStroke", { Color = t.Stroke, Thickness = 2, Transparency = 0.15 }, row)
+        Create("UIGradient", {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, t.Grad0),
+                ColorSequenceKeypoint.new(1, t.Panel),
+            }),
+            Rotation = 20,
+        }, row)
+
+        -- Icon màu nhỏ bên trái
+        local dot = Create("Frame", {
+            Size = UDim2.new(0, 14, 0, 14),
+            Position = UDim2.new(0, 14, 0.5, -7),
+            BackgroundColor3 = t.Accent,
+            BorderSizePixel = 0,
+        }, row)
+        Create("UICorner", { CornerRadius = UDim.new(1, 0) }, dot)
+
+        -- Tên theme
+        Create("TextLabel", {
+            Size = UDim2.new(1, -80, 1, 0),
+            Position = UDim2.new(0, 36, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "🎨  " .. name,
+            TextColor3 = t.Accent,
+            Font = FONT_B, TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+        }, row)
+
+        -- Switch dùng lại BuildSwitch gốc
+        local sw = HS.BuildSwitch(row, UDim2.new(1, -10, 0.5, 0), false)
+        themeToggles[name] = sw
+
+        row.MouseEnter:Connect(function()
+            TweenService:Create(row, TI, { BackgroundTransparency = 0 }):Play()
+        end)
+        row.MouseLeave:Connect(function()
+            TweenService:Create(row, TI, { BackgroundTransparency = 0.1 }):Play()
+        end)
+        row.MouseButton1Click:Connect(function()
+            Click()
+            -- Tắt các theme khác
+            for n, s in pairs(themeToggles) do
+                s.Set(n == name)
+            end
+            ApplyTheme(name)
+        end)
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  INJECTOR 1.0 — Panel hiện ngay khi chạy script
+-- ══════════════════════════════════════════════════════════════
+local InjGui = Create("ScreenGui", {
+    Name = "HyperSunInjector30", ResetOnSpawn = false, IgnoreGuiInset = true
+}, Root)
+
+local Overlay = Create("Frame", {
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    BackgroundTransparency = 0.45,
+    BorderSizePixel = 0,
+    ZIndex = 100,
+}, InjGui)
+
+local InjPanel = Create("Frame", {
+    Size = UDim2.new(0, 330, 0, 236),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundColor3 = Color3.fromRGB(8, 6, 10),
+    BackgroundTransparency = 0.03,
+    BorderSizePixel = 0,
+    ZIndex = 101,
+}, InjGui)
+Create("UICorner", { CornerRadius = UDim.new(0, 16) }, InjPanel)
+Create("UIStroke", { Color = Color3.fromRGB(255, 45, 65), Thickness = 2.2, Transparency = 0.06 }, InjPanel)
+Create("UIGradient", {
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(55, 8, 18)),
+        ColorSequenceKeypoint.new(0.55, Color3.fromRGB(14, 8, 20)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(7, 7, 10)),
+    }),
+    Rotation = 115,
+}, InjPanel)
+
+-- Draggable
+local _injDrag, _injStart, _injFrameStart = false, nil, nil
+InjPanel.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        _injDrag = true; _injStart = i.Position; _injFrameStart = InjPanel.Position
+    end
+end)
+InjPanel.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        _injDrag = false
+    end
+end)
+Connections[#Connections + 1] = UserInputService.InputChanged:Connect(function(i)
+    if _injDrag and _injStart and _injFrameStart and
+        (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - _injStart
+        InjPanel.Position = UDim2.new(
+            _injFrameStart.X.Scale, _injFrameStart.X.Offset + d.X,
+            _injFrameStart.Y.Scale, _injFrameStart.Y.Offset + d.Y
+        )
+    end
+end)
+
+-- Header Injector
+local InjHeader = Create("Frame", { Size = UDim2.new(1,0,0,48), BackgroundTransparency=1, ZIndex=102 }, InjPanel)
+Create("TextLabel", {
+    Size = UDim2.new(1,-16,1,0), Position = UDim2.new(0,14,0,0),
+    BackgroundTransparency = 1, RichText = true,
+    Text = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.0 Elite</font>',
+    TextColor3 = Color3.new(1,1,1), Font = FONT_B, TextSize = 20,
+    TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 102,
+}, InjHeader)
+Create("TextLabel", {
+    Size = UDim2.new(1,-16,0,18), Position = UDim2.new(0,14,0,32),
+    BackgroundTransparency=1, Text = "Injector 1.0  —  Chọn chức năng",
+    TextColor3 = Color3.fromRGB(177,155,160), Font = FONT_N, TextSize=12,
+    TextXAlignment = Enum.TextXAlignment.Left, ZIndex=102,
+}, InjPanel)
+Create("Frame", {
+    Size = UDim2.new(1,-16,0,1), Position = UDim2.new(0,8,0,50),
+    BackgroundColor3 = Color3.fromRGB(255,45,65), BackgroundTransparency=0.3, BorderSizePixel=0, ZIndex=102,
+}, InjPanel)
+
+-- Nút maker
+local function MakeInjBtn(label, yOff, bgColor, strokeColor)
+    local btn = Create("TextButton", {
+        Size = UDim2.new(1,-28,0,46),
+        Position = UDim2.new(0,14,0,yOff),
+        BackgroundColor3 = bgColor,
+        BackgroundTransparency = 0.12,
+        Text = label,
+        TextColor3 = Color3.fromRGB(245,242,243),
+        Font = FONT_B, TextSize = 14,
+        AutoButtonColor = false, ZIndex = 102,
+    }, InjPanel)
+    Create("UICorner", { CornerRadius = UDim.new(0,10) }, btn)
+    Create("UIStroke", { Color = strokeColor, Thickness = 1.4, Transparency = 0.35 }, btn)
+    Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, bgColor),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(
+                math.floor(bgColor.R*255*0.6),
+                math.floor(bgColor.G*255*0.6),
+                math.floor(bgColor.B*255*0.6)
+            )),
+        }),
+        Rotation = 90,
+    }, btn)
+    btn.MouseEnter:Connect(function() TweenService:Create(btn,TI,{BackgroundTransparency=0}):Play() end)
+    btn.MouseLeave:Connect(function() TweenService:Create(btn,TI,{BackgroundTransparency=0.12}):Play() end)
+    return btn
+end
+
+local BypassBtn = MakeInjBtn(
+    "🔑  Bypass Key",
+    58,
+    Color3.fromRGB(30, 85, 190),
+    Color3.fromRGB(80, 160, 255)
+)
+local InjectBtn = MakeInjBtn(
+    "⚡  Injector Script 3.0 Elite",
+    114,
+    Color3.fromRGB(180, 20, 40),
+    Color3.fromRGB(255, 70, 90)
+)
+
+local InjStatus = Create("TextLabel", {
+    Size = UDim2.new(1,-16,0,22),
+    Position = UDim2.new(0,8,1,-30),
+    BackgroundTransparency=1, Text="",
+    TextColor3 = Color3.fromRGB(255,195,35),
+    Font = FONT_B, TextSize=12,
+    TextXAlignment = Enum.TextXAlignment.Center, ZIndex=102,
+}, InjPanel)
+
+-- Bypass Key logic
+local bypassBusy = false
+BypassBtn.MouseButton1Click:Connect(function()
+    if bypassBusy then return end
+    bypassBusy = true
+    TweenService:Create(BypassBtn, TI, { BackgroundColor3 = Color3.fromRGB(60,60,15) }):Play()
+    for i = 10, 1, -1 do
+        InjStatus.Text = "⏳  Bypass Key — còn " .. i .. "s..."
+        InjStatus.TextColor3 = Color3.fromRGB(255, 195, 35)
+        task.wait(1)
+    end
+    InjStatus.Text = "✅  Bypass Key thành công!"
+    InjStatus.TextColor3 = Color3.fromRGB(55, 200, 90)
+    BypassBtn.Text = "✅  Bypass Key — Hoàn tất"
+    TweenService:Create(BypassBtn, TI, { BackgroundColor3 = Color3.fromRGB(18, 90, 35) }):Play()
+    bypassBusy = false
+end)
+
+-- Inject: đóng panel rồi để script gốc chạy bình thường
+InjectBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(InjPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+        { Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0) }):Play()
+    TweenService:Create(Overlay, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { BackgroundTransparency = 1 }):Play()
+    task.delay(0.35, function()
+        pcall(function() InjGui:Destroy() end)
+        Notify("HyperSun 3.0 Elite", "✦ Script đã được inject thành công!", 5)
+    end)
+end)
+
+-- ══════════════════════════════════════════════════════════════
+--  HITFLY — thêm vào tab AimBot
+-- ══════════════════════════════════════════════════════════════
+local HF = {
+    Enabled = false,
+    Height  = 12,
+    Speed   = 55,
+    Float   = nil,
+    Conn    = nil,
+    Busy    = false,
+}
+
+local function HF_GetHRP()
+    local c = LocalPlayer.Character
+    return c and c:FindFirstChild("HumanoidRootPart"),
+           c and c:FindFirstChildOfClass("Humanoid")
+end
+
+local function DoHitFly()
+    if HF.Busy then return end
+    HF.Busy = true
+    local hrp, hum = HF_GetHRP()
+    if not hrp or not hum or hum.Health <= 0 then HF.Busy = false; return end
+
+    -- giả lập nhận đòn: lực nhỏ xuống
+    pcall(function()
+        hrp.AssemblyLinearVelocity = Vector3.new(
+            hrp.AssemblyLinearVelocity.X, -6,
+            hrp.AssemblyLinearVelocity.Z
+        )
+    end)
+    task.wait(0.04)
+
+    local targetY = hrp.Position.Y + HF.Height
+    local elapsed = 0
+    local maxTime = HF.Height / math.max(HF.Speed, 1) + 0.65
+    local c2
+    c2 = RunService.Heartbeat:Connect(function(dt)
+        if not HF.Enabled or Unloaded then c2:Disconnect(); HF.Busy=false; return end
+        local h = HF_GetHRP()
+        if not h then c2:Disconnect(); HF.Busy=false; return end
+        elapsed = elapsed + dt
+        local rem = targetY - h.Position.Y
+        if rem > 0.4 and elapsed < maxTime then
+            pcall(function()
+                h.AssemblyLinearVelocity = Vector3.new(
+                    h.AssemblyLinearVelocity.X,
+                    math.min(HF.Speed, rem / math.max(dt, 0.001) * 0.88),
+                    h.AssemblyLinearVelocity.Z
+                )
+            end)
+        else
+            c2:Disconnect(); HF.Busy = false
+        end
+    end)
+end
+
+local function HitFly_Loop()
+    if HF.Conn then pcall(function() HF.Conn:Disconnect() end); HF.Conn = nil end
+    if not HF.Enabled then return end
+    local timer = 0
+    HF.Conn = RunService.Heartbeat:Connect(function(dt)
+        if not HF.Enabled or Unloaded then
+            pcall(function() HF.Conn:Disconnect() end); HF.Conn=nil; return
+        end
+        timer = timer + dt
+        if timer >= 0.9 then timer=0; task.spawn(DoHitFly) end
+    end)
+end
+
+local function SetHitFly(on)
+    HF.Enabled = on and true or false
+    if HF.Float then HF.Float.SetOn(HF.Enabled) end
+    if HF.Enabled then
+        Notify("HitFly 3.0 Elite", "Bật — Cao: "..HF.Height.." | Tốc: "..HF.Speed, 4)
+        HitFly_Loop()
+    else
+        HF.Busy = false
+        if HF.Conn then pcall(function() HF.Conn:Disconnect() end); HF.Conn=nil end
+        Notify("HitFly 3.0 Elite", "Đã tắt HitFly", 3)
+    end
+end
+
+-- Nút nổi HitFly
+HF.Float = HS.CreateFloat("HitFly", 999)
+HF.Float.OnTap(function() SetHitFly(not HF.Enabled) end)
+
+-- Thêm UI vào cuối tab AimBot
+CreateHeader(HS.TabAimbot, "HITFLY · 3.0 ELITE")
+
+local hfToggle = CreateToggle(HS.TabAimbot, "HitFly · Bật / Tắt", false, function(s)
+    SetHitFly(s)
+end)
+CreateSlider(HS.TabAimbot, "Độ cao HitFly (studs)", 2, 80, 12, function(v)
+    HF.Height = v
+    if HF.Enabled then Notify("HitFly", "Độ cao → "..v.." studs", 2) end
+end)
+CreateSlider(HS.TabAimbot, "Tốc độ HitFly (studs/s)", 5, 200, 55, function(v)
+    HF.Speed = v
+    if HF.Enabled then Notify("HitFly", "Tốc độ → "..v, 2) end
+end)
+CreateToggle(HS.TabAimbot, "Hiện nút nổi HitFly", false, function(on)
+    HF.Float.Show(on)
+end)
+CreateLabel(HS.TabAimbot, "HitFly giả lập đòn đánh lên nhân vật rồi phóng lên theo độ cao/tốc độ chỉnh.", C.Sub)
+CreateLabel(HS.TabAimbot, "Chỉ ảnh hưởng phía client. Tự dừng khi respawn.", C.Sub)
+
+-- Hook unload để dọn HitFly
+local _origUnload = Env.HyperSunUnload
+Env.HyperSunUnload = function()
+    HF.Enabled = false
+    HF.Busy    = false
+    if HF.Conn then pcall(function() HF.Conn:Disconnect() end); HF.Conn = nil end
+    pcall(function() InjGui:Destroy() end)
+    if _origUnload then pcall(_origUnload) end
+end
