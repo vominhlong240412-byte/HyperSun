@@ -72,7 +72,7 @@ local FONT_TITLE = Enum.Font.GothamBlack
 local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local WIN_W, WIN_H = 440, 350
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.0 Elite</font>'
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Beta Fix</font>'
 
 local HttpService = game:GetService("HttpService")
 local Notify, GetHRP
@@ -97,7 +97,7 @@ Settings = { Sound = true, Volume = 80 }
 
 -- Settings persistence (executor file API when available; falls back to session memory).
 HS.SettingsFolder = "HyperSun"
-HS.SettingsFile = "HyperSun/HyperSun_3.0_Elite_Settings.json"
+HS.SettingsFile = "HyperSun/HyperSun_3.1_BetaFix_Settings.json"
 HS.SavedSettingsCache = nil
 function HS.BuildSettingsSnapshot()
     return {
@@ -616,7 +616,7 @@ task.spawn(function()
         BackgroundTransparency = 1, Text = "", RichText = true, TextColor3 = Color3.new(1,1,1),
         Font = Enum.Font.GothamBlack, TextSize = 22, TextWrapped = true, ZIndex = 81
     }, splash)
-    local full = "Hyper Sun 3.0 Elite"
+    local full = "Hyper Sun 3.1 Beta Fix"
     for i = 1, #full do
         if Unloaded or not splash.Parent then break end
         local part = string.sub(full, 1, i)
@@ -2681,7 +2681,7 @@ CreateSlider(HS.TabSet, "Cỡ menu (%)", 50, 160, math.floor(HS.startScale * 100
 CreateButton(HS.TabSet, "Đưa menu về giữa màn hình", function()
 Main.Position = UDim2.new(0.5, 0, 0.5, 0)
 end)
-CreateLabel(HS.TabSet, 'Phiên bản: <font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.0 Elite</font>')
+CreateLabel(HS.TabSet, 'Phiên bản: <font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Beta Fix</font>')
 
 CreateHeader(HS.TabSet, "HỆ THỐNG")
 
@@ -3083,7 +3083,7 @@ local InjHeader = Create("Frame", { Size = UDim2.new(1,0,0,48), BackgroundTransp
 Create("TextLabel", {
     Size = UDim2.new(1,-16,1,0), Position = UDim2.new(0,14,0,0),
     BackgroundTransparency = 1, RichText = true,
-    Text = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.0 Elite</font>',
+    Text = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Beta Fix</font>',
     TextColor3 = Color3.new(1,1,1), Font = FONT_B, TextSize = 20,
     TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 102,
 }, InjHeader)
@@ -3135,7 +3135,7 @@ local BypassBtn = MakeInjBtn(
     Color3.fromRGB(80, 160, 255)
 )
 local InjectBtn = MakeInjBtn(
-    "⚡  Injector Script 3.0 Elite",
+    "⚡  Injector Script 3.1 Beta Fix",
     114,
     Color3.fromRGB(180, 20, 40),
     Color3.fromRGB(255, 70, 90)
@@ -3176,7 +3176,7 @@ InjectBtn.MouseButton1Click:Connect(function()
         { BackgroundTransparency = 1 }):Play()
     task.delay(0.35, function()
         pcall(function() InjGui:Destroy() end)
-        Notify("HyperSun 3.0 Elite", "✦ Script đã được inject thành công!", 5)
+        Notify("HyperSun 3.1 Beta Fix", "✦ Script đã được inject thành công!", 5)
     end)
 end)
 
@@ -3254,12 +3254,12 @@ local function SetHitFly(on)
     HF.Enabled = on and true or false
     if HF.Float then HF.Float.SetOn(HF.Enabled) end
     if HF.Enabled then
-        Notify("HitFly 3.0 Elite", "Bật — Cao: "..HF.Height.." | Tốc: "..HF.Speed, 4)
+        Notify("HitFly 3.1 Beta Fix", "Bật — Cao: "..HF.Height.." | Tốc: "..HF.Speed, 4)
         HitFly_Loop()
     else
         HF.Busy = false
         if HF.Conn then pcall(function() HF.Conn:Disconnect() end); HF.Conn=nil end
-        Notify("HitFly 3.0 Elite", "Đã tắt HitFly", 3)
+        Notify("HitFly 3.1 Beta Fix", "Đã tắt HitFly", 3)
     end
 end
 
@@ -3268,7 +3268,7 @@ HF.Float = HS.CreateFloat("HitFly", 999)
 HF.Float.OnTap(function() SetHitFly(not HF.Enabled) end)
 
 -- Thêm UI vào cuối tab AimBot
-CreateHeader(HS.TabAimbot, "HITFLY · 3.0 ELITE")
+CreateHeader(HS.TabAimbot, "HITFLY · 3.1 BETA FIX")
 
 local hfToggle = CreateToggle(HS.TabAimbot, "HitFly · Bật / Tắt", false, function(s)
     SetHitFly(s)
@@ -3295,4 +3295,128 @@ Env.HyperSunUnload = function()
     if HF.Conn then pcall(function() HF.Conn:Disconnect() end); HF.Conn = nil end
     pcall(function() InjGui:Destroy() end)
     if _origUnload then pcall(_origUnload) end
+end
+
+-- ════════════════════════════════════════════════════════════════
+--  DASH · 3.1 Beta Fix
+--  Thêm vào tab AimBot, nút nổi "Dash" riêng
+-- ════════════════════════════════════════════════════════════════
+
+local DS = {
+    Enabled  = false,
+    Dist     = 60,      -- studs mỗi lần dash
+    Cooldown = 0.18,    -- giây giữa 2 lần dash (spam được)
+    Float    = nil,
+    LastDash = 0,
+    Busy     = false,
+}
+
+local function DashExec()
+    local now = tick()
+    if DS.Busy or (now - DS.LastDash) < DS.Cooldown then return end
+    DS.Busy = true
+    DS.LastDash = now
+
+    local char = LocalPlayer.Character
+    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+    local hum  = char and char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum or hum.Health <= 0 then DS.Busy = false; return end
+
+    -- Hướng dash: nếu đang di chuyển thì theo hướng di chuyển,
+    -- nếu đứng yên thì theo hướng nhìn của camera
+    local cam = Workspace.CurrentCamera
+    local moveDir = hum.MoveDirection
+    local dir
+    if moveDir.Magnitude > 0.1 then
+        dir = moveDir.Unit
+    else
+        dir = (cam and cam.CFrame.LookVector or hrp.CFrame.LookVector)
+        dir = Vector3.new(dir.X, 0, dir.Z).Unit
+    end
+    if dir.Magnitude < 0.01 then dir = hrp.CFrame.LookVector end
+    dir = Vector3.new(dir.X, 0, dir.Z).Unit
+
+    local steps   = 8
+    local stepDist = DS.Dist / steps
+    local stepWait = 0.016
+
+    -- Dash bằng cách teleport từng bước nhỏ trong 1 frame loop ngắn
+    local conn
+    local step = 0
+    conn = RunService.Heartbeat:Connect(function()
+        if step >= steps or not DS.Enabled or Unloaded then
+            conn:Disconnect()
+            DS.Busy = false
+            return
+        end
+        local h = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not h then conn:Disconnect(); DS.Busy = false; return end
+        pcall(function()
+            h.CFrame = h.CFrame + dir * stepDist
+        end)
+        step = step + 1
+    end)
+
+    -- Fallback: giải phóng Busy sau maxTime dù conn còn hay không
+    task.delay(steps * stepWait + 0.1, function()
+        DS.Busy = false
+    end)
+end
+
+local function SetDash(on)
+    DS.Enabled = on and true or false
+    if DS.Float then DS.Float.SetOn(DS.Enabled) end
+    if DS.Enabled then
+        Notify("Dash 3.1 Beta Fix", "Bật — Quãng đường: " .. DS.Dist .. " studs", 3)
+    else
+        Notify("Dash 3.1 Beta Fix", "Đã tắt Dash", 3)
+    end
+end
+
+-- Nút nổi Dash (nhỏ, riêng biệt)
+DS.Float = HS.CreateFloat("Dash", 1050)
+DS.Float.OnTap(function()
+    if not DS.Enabled then return end
+    task.spawn(DashExec)
+end)
+
+-- Kết nối input: giữ nút nổi để spam dash khi bật
+Connections[#Connections + 1] = UserInputService.InputBegan:Connect(function(inp, gpe)
+    if gpe then return end
+    -- Phím E trên PC để dash (tùy chọn)
+    if DS.Enabled and inp.KeyCode == Enum.KeyCode.E then
+        task.spawn(DashExec)
+    end
+end)
+
+-- ── UI Dash trong tab AimBot ─────────────────────────────────
+CreateHeader(HS.TabAimbot, "DASH · 3.1 BETA FIX")
+
+CreateToggle(HS.TabAimbot, "Dash · Bật / Tắt", false, function(s)
+    SetDash(s)
+end)
+
+CreateSlider(HS.TabAimbot, "Quãng đường Dash (studs)", 10, 200, 60, function(v)
+    DS.Dist = v
+    if DS.Enabled then Notify("Dash", "Quãng đường → " .. v .. " studs", 2) end
+end)
+
+CreateSlider(HS.TabAimbot, "Cooldown Dash (ms)", 50, 800, 180, function(v)
+    DS.Cooldown = v / 1000
+    if DS.Enabled then Notify("Dash", "Cooldown → " .. v .. "ms", 2) end
+end)
+
+CreateToggle(HS.TabAimbot, "Hiện nút nổi Dash", false, function(on)
+    DS.Float.Show(on)
+end)
+
+CreateLabel(HS.TabAimbot, "Ấn nút nổi Dash để lướt. Trên PC bấm [E] để dash. Có thể spam theo cooldown.", C.Sub)
+CreateLabel(HS.TabAimbot, "Hướng dash theo di chuyển hoặc hướng nhìn camera nếu đứng yên.", C.Sub)
+
+-- Hook unload: dọn Dash
+local _dashOldUnload = Env.HyperSunUnload
+Env.HyperSunUnload = function()
+    DS.Enabled = false
+    DS.Busy    = false
+    if _dashOldUnload then pcall(_dashOldUnload) end
 end
