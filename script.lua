@@ -10,7 +10,8 @@ local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local SoundService = game:GetService("SoundService")
 local ContentProvider = game:GetService("ContentProvider")
-local Stats = game:GetService("Stats")
+local Stats = nil
+pcall(function() Stats = game:GetService("Stats") end)
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera or Workspace:WaitForChild("Camera")
@@ -363,7 +364,7 @@ pcall(function() HS.Invis.AddedConn:Disconnect() end)
 HS.Invis.AddedConn = nil
 end
 HS.Invis.AddedConn = char.DescendantAdded:Connect(function(inst)
-if HS.Invis.Enabled then task.defer(function() if HS.Invis.Enabled and inst.Parent then HS.InvisHide(inst) end end) end
+if HS.Invis.Enabled then task.spawn(function() if HS.Invis.Enabled and inst.Parent then HS.InvisHide(inst) end end) end
 end)
 local hum = char:FindFirstChildOfClass("Humanoid")
 if hum then
@@ -556,7 +557,7 @@ Size = UDim2.new(1, 0, 1, -36), Position = UDim2.new(0, 0, 0, 36), BackgroundTra
 HS.Sidebar = Create("ScrollingFrame", {
 Size = UDim2.new(0, 114, 1, -38), Position = UDim2.new(0, 8, 0, 0), BackgroundTransparency = 1,
 BorderSizePixel = 0, ScrollBarThickness = 0,
-CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
+CanvasSize = UDim2.new(0, 0, 0, 0), CanvasSize = UDim2.new(0, 0, 10, 0)
 }, HS.Body)
 Create("UIListLayout", { Padding = UDim.new(0, 7), SortOrder = Enum.SortOrder.LayoutOrder }, HS.Sidebar)
 
@@ -564,7 +565,7 @@ local Content = Create("ScrollingFrame", {
 Size = UDim2.new(1, -136, 1, -38), Position = UDim2.new(0, 128, 0, 0),
 BackgroundColor3 = Color3.fromRGB(10, 7, 8), BackgroundTransparency = 0.18,
 BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = C.Accent,
-CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
+CanvasSize = UDim2.new(0, 0, 0, 0), CanvasSize = UDim2.new(0, 0, 10, 0)
 }, HS.Body)
 Create("UICorner", { CornerRadius = UDim.new(0, 9) }, Content)
 Create("UIPadding", {
@@ -1327,7 +1328,7 @@ HS.dropFrame = Create("Frame", { Size = UDim2.new(1, 0, 0, 110), BackgroundColor
 Create("UICorner", { CornerRadius = UDim.new(0, 7) }, HS.dropFrame)
 HS.dropScroll = Create("ScrollingFrame", {
 Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2,
-CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y
+CanvasSize = UDim2.new(0, 0, 0, 0), CanvasSize = UDim2.new(0, 0, 10, 0)
 }, HS.dropFrame)
 Create("UIListLayout", { Padding = UDim.new(0, 2) }, HS.dropScroll)
 HS.DropdownBtn.MouseButton1Click:Connect(function() HS.dropFrame.Visible = not HS.dropFrame.Visible end)
@@ -1362,7 +1363,7 @@ HS.TeleTarget = nil
 HS.DropdownBtn.Text = "Chọn Player"
 HS.TeleFloat.Show(false)
 end
-task.defer(HS.refreshPlayers)
+task.spawn(HS.refreshPlayers)
 end)
 
 HS.TeleFloat.OnTap(function()
@@ -1612,7 +1613,7 @@ function HS.SetFreezeMarker(on)
     if HS.FreezeConnection then pcall(function() HS.FreezeConnection:Disconnect() end); HS.FreezeConnection = nil end
     HS.ClearFreezeMarker()
     if HS.FreezeEnabled then
-        HS.FreezeConnection = RunService.RenderStepped:Connect(function()
+        HS.FreezeConnection = RunService.Heartbeat:Connect(function()
             if not HS.FreezeEnabled or Unloaded then return end
             local cam = Workspace.CurrentCamera
             if not cam then return end
@@ -1779,7 +1780,7 @@ function HS.MakeTeleBoard(plr)
     if not root or not hum or hum.Health <= 0 then return end
     local model = Instance.new("Model")
     model.Name = "HyperSun_RainbowBoard"
-    model.Parent = ScreenGui
+    model.Parent = Workspace
     local colors = {
         Color3.fromRGB(255, 35, 55), Color3.fromRGB(255, 130, 25),
         Color3.fromRGB(255, 225, 35), Color3.fromRGB(40, 220, 100),
@@ -1991,7 +1992,7 @@ function HS.SetGhost(on)
             local pm = ps and require(ps:WaitForChild("PlayerModule", 3))
             HS.GhostControls = pm and pm:GetControls()
         end)
-        HS.GhostMoveConnection = RunService.RenderStepped:Connect(function()
+        HS.GhostMoveConnection = RunService.Heartbeat:Connect(function()
             if not HS.GhostEnabled or not HS.GhostClone or not HS.GhostClone.Parent or not HS.GhostHumanoid then return end
             local move = Vector3.zero
             pcall(function()
@@ -2084,7 +2085,7 @@ function HS.SetFastTalk(on)
         if HS.FastTalkAddedConn then HS.FastTalkAddedConn:Disconnect() end
         HS.FastTalkAddedConn = Workspace.DescendantAdded:Connect(function(inst)
             if State.Memory.FastTalk and inst:IsA("ProximityPrompt") then
-                task.defer(function() HS.ApplyFastTalkPrompt(inst) end)
+                task.spawn(function() HS.ApplyFastTalkPrompt(inst) end)
             end
         end)
         Notify("Fast Talk", "Đã giảm thời gian giữ prompt ở phía client", 4)
@@ -2468,7 +2469,7 @@ end
 
 Connections[#Connections + 1] = Workspace.DescendantAdded:Connect(function(d)
 if State.Under.Enabled and State.Under.Hide and not Unloaded then
-task.defer(HS.HidePart, d)
+task.spawn(HS.HidePart, d)
 end
 end)
 
@@ -2757,13 +2758,13 @@ end
 
 function HS.GetPing()
 local ok, v = pcall(function()
-return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+return (Stats and pcall(function() return Stats.Network.ServerStatsItem["Data Ping"]:GetValue() end) and Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) or 0
 end)
 if ok and v then return math.floor(v) end
 return 0
 end
 
-Connections[#Connections + 1] = RunService.RenderStepped:Connect(function(dt)
+Connections[#Connections + 1] = RunService.Heartbeat:Connect(function(dt)
 if Unloaded then return end
 Camera = Workspace.CurrentCamera or Camera
 
@@ -3429,7 +3430,7 @@ end
 
 -- ── 1. UI POLISH ─────────────────────────────────────────────────
 -- Áp dụng ngay sau khi GUI tồn tại (defer để đảm bảo mọi widget đã render)
-task.defer(function()
+task.spawn(function()
     if Unloaded then return end
     local gui = Root:FindFirstChild("HyperSunUI")
     if not gui then return end
@@ -3679,7 +3680,7 @@ CreateLabel(HS.TabAimbot, "AimKill dùng Tool đang cầm để tấn công tấ
 CreateLabel(HS.TabAimbot, "Hiệu quả phụ thuộc vào cơ chế combat của từng game. Team Check được tôn trọng.", C.Sub)
 
 -- ── Fix: CharacterAdded re-init toàn bộ chức năng loop ──────────
--- Dùng task.defer + wait dài hơn để HumanoidRootPart kịp spawn
+-- Dùng task.spawn + wait dài hơn để HumanoidRootPart kịp spawn
 Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function(char)
     -- Chờ nhân vật load xong hoàn toàn
     char:WaitForChild("HumanoidRootPart", 8)
@@ -3763,22 +3764,25 @@ local function FRZE_FreezeHRP(hrp)
     local savedCF  = hrp.CFrame
 
     -- BodyPosition giữ chỗ
-    local bp = Instance.new("BodyPosition")
-    bp.Name        = "HyperSunFreezeBP"
-    bp.Position    = savedPos
-    bp.MaxForce    = Vector3.new(1e9, 1e9, 1e9)
-    bp.P           = 1e5
-    bp.D           = 1e4
-    bp.Parent      = hrp
-
-    -- BodyGyro giữ hướng
-    local bg = Instance.new("BodyGyro")
-    bg.Name      = "HyperSunFreezeBG"
-    bg.CFrame    = savedCF
-    bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-    bg.P         = 1e5
-    bg.D         = 500
-    bg.Parent    = hrp
+    local bp, bg
+    pcall(function()
+        bp = Instance.new("BodyPosition")
+        bp.Name     = "HyperSunFreezeBP"
+        bp.Position = savedPos
+        bp.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bp.P        = 1e5
+        bp.D        = 1e4
+        bp.Parent   = hrp
+    end)
+    pcall(function()
+        bg = Instance.new("BodyGyro")
+        bg.Name      = "HyperSunFreezeBG"
+        bg.CFrame    = savedCF
+        bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        bg.P         = 1e5
+        bg.D         = 500
+        bg.Parent    = hrp
+    end)
 
     FRZE.Frozen[hrp] = { bp = bp, bg = bg, pos = savedPos, cf = savedCF }
 end
