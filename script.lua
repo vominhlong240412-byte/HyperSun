@@ -3541,52 +3541,68 @@ local function AK_GetTargets()
     return targets
 end
 
--- Thực hiện đòn đánh vào 1 target — dùng Tool:Activate nếu có, fallback Humanoid:TakeDamage (client-side)
+-- Thực hiện đòn đánh vào 1 target — đa phương pháp, ưu tiên theo khả năng executor
 local function AK_HitTarget(target)
     local now = tick()
     local plr = target.plr
-    -- Cooldown riêng mỗi target
     if AK.LastHit[plr] and (now - AK.LastHit[plr]) < AK.CoolPer then return end
     AK.LastHit[plr] = now
 
-    local char = LocalPlayer.Character
-    local tool = char and char:FindFirstChildOfClass("Tool")
+    local myChar = LocalPlayer.Character
+    if not myChar then return end
 
-    local ok = false
+    local enemyChar = plr.Character
+    local enemyHRP  = target.hrp
+    local enemyHum  = enemyChar and enemyChar:FindFirstChildOfClass("Humanoid")
+    if not enemyChar or not enemyHRP or not enemyHum or enemyHum.Health <= 0 then return end
 
-    -- Phương pháp 1: dùng Tool đang cầm
+    local tool = myChar:FindFirstChildOfClass("Tool")
+
+    -- ── Phương pháp 1: Teleport toàn bộ nhân vật tôi đến địch, Activate, rồi về ──
+    -- Cách này đảm bảo hitbox của server nhận ra đòn đánh
     if tool then
-        local handle = tool:FindFirstChild("Handle")
-        local hum = target.plr.Character and target.plr.Character:FindFirstChildOfClass("Humanoid")
-
-        -- Teleport tool handle tạm vào người địch rồi Activate
-        if handle and hum then
-            local origCF = handle.CFrame
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+        if myHRP then
+            local savedCF = myHRP.CFrame
+            -- Snap nhân vật tới địch
             pcall(function()
-                handle.CFrame = target.hrp.CFrame
-                tool:Activate()
+                myHRP.CFrame = enemyHRP.CFrame * CFrame.new(0, 0, -1.2)
             end)
-            task.delay(0.04, function()
-                pcall(function()
-                    if handle and handle.Parent then
-                        handle.CFrame = origCF
-                    end
-                end)
-            end)
-            ok = true
-        else
+            task.wait(0.015) -- 1 frame để server nhận vị trí
             pcall(function() tool:Activate() end)
-            ok = true
+            task.wait(0.015)
+            -- Trả về vị trí cũ
+            pcall(function()
+                myHRP.CFrame = savedCF
+                myHRP.AssemblyLinearVelocity = Vector3.zero
+            end)
+            return
         end
     end
 
-    -- Phương pháp 2 (fallback): TakeDamage client-side (chỉ hiệu quả nếu game không lock health server-side)
-    if not ok then
-        local hum = target.plr.Character and target.plr.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            pcall(function() hum:TakeDamage(hum.MaxHealth) end)
+    -- ── Phương pháp 2: Chỉ Activate tool không di chuyển (fallback khi không lấy được HRP) ──
+    if tool then
+        pcall(function() tool:Activate() end)
+        return
+    end
+
+    -- ── Phương pháp 3: TakeDamage trực tiếp + HealthChanged event (client-side, nhiều game không block) ──
+    pcall(function() enemyHum.Health = 0 end)
+    pcall(function() enemyHum:TakeDamage(enemyHum.MaxHealth + 9999) end)
+
+    -- ── Phương pháp 4: FireServer qua RemoteEvent nếu game có "DealDamage" / "Hit" remote ──
+    -- Tìm và thử fire các remote phổ biến
+    local function TryFireRemote(remoteNames, ...)
+        for _, name in ipairs(remoteNames) do
+            local remote = Workspace:FindFirstChild(name, true)
+                       or game:GetService("ReplicatedStorage"):FindFirstChild(name, true)
+            if remote and remote:IsA("RemoteEvent") then
+                pcall(function() remote:FireServer(...) end)
+            end
         end
     end
+    TryFireRemote({"DealDamage","Hit","TakeDamage","Damage","OnDamage","HitPlayer"},
+        enemyChar, enemyHum.MaxHealth + 9999)
 end
 
 -- Vòng lặp AimKill
@@ -3662,27 +3678,50 @@ end)
 CreateLabel(HS.TabAimbot, "AimKill dùng Tool đang cầm để tấn công tất cả kẻ địch trong phạm vi. Nếu không có Tool sẽ fallback TakeDamage client-side.", C.Sub)
 CreateLabel(HS.TabAimbot, "Hiệu quả phụ thuộc vào cơ chế combat của từng game. Team Check được tôn trọng.", C.Sub)
 
--- ── Sửa lỗi: CharacterAdded re-init AimKill & Dash & HitFly ─────
+-- ── Fix: CharacterAdded re-init toàn bộ chức năng loop ──────────
+-- Dùng task.defer + wait dài hơn để HumanoidRootPart kịp spawn
 Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(0.8)
+    -- Chờ nhân vật load xong hoàn toàn
+    char:WaitForChild("HumanoidRootPart", 8)
+    char:WaitForChild("Humanoid", 8)
+    task.wait(1.2)
     if Unloaded then return end
 
-    -- Re-init AimKill
+    -- Re-init AimKill: hard-disconnect conn cũ trước
     if AK.Enabled then
+        if AK.Conn then
+            pcall(function() AK.Conn:Disconnect() end)
+            AK.Conn = nil
+        end
         ClearTableCompat(AK.LastHit)
+        task.wait(0.1)
         AK_Loop()
     end
 
     -- Re-init HitFly
     if HF and HF.Enabled then
+        if HF.Conn then
+            pcall(function() HF.Conn:Disconnect() end)
+            HF.Conn = nil
+        end
         HF.Busy = false
+        task.wait(0.05)
         HitFly_Loop()
     end
 
     -- Re-init Dash
     if DS and DS.Enabled then
+        if DS.Conn then
+            pcall(function() DS.Conn:Disconnect() end)
+            DS.Conn = nil
+        end
         DS.Busy = false
         DS.LastDash = 0
+    end
+
+    -- Re-init Freeze client-side nếu đang bật
+    if FRZE and FRZE.Enabled then
+        task.spawn(function() FRZE_Apply() end)
     end
 end)
 
@@ -3693,4 +3732,199 @@ Env.HyperSunUnload = function()
     if AK.Conn then pcall(function() AK.Conn:Disconnect() end); AK.Conn = nil end
     ClearTableCompat(AK.LastHit)
     if _akOldUnload then pcall(_akOldUnload) end
+end
+
+-- ════════════════════════════════════════════════════════════════
+--  FREEZE · 3.1 ELITE
+--  Đóng băng toàn bộ kẻ địch trên map — client-side:
+--  - Anchor HRP cục bộ bằng BodyPosition/BodyGyro (không replicate)
+--  - Vẫn có thể gây sát thương / tương tác
+--  - Bên phía địch họ vẫn di chuyển bình thường
+--  - Tắt → xóa toàn bộ constraint, địch trả về trạng thái bình thường
+-- ════════════════════════════════════════════════════════════════
+
+local FRZE = {
+    Enabled = false,
+    Float   = nil,
+    Toggle  = nil,
+    -- [hrp] = { bp = BodyPosition, bg = BodyGyro, savedMass = ... }
+    Frozen  = {},
+    Conn    = nil,  -- Heartbeat để giữ position (BodyPosition đủ, dùng như backup)
+    AddConn = nil,  -- PlayerAdded
+    RemConn = nil,  -- PlayerRemoving
+}
+
+-- Đóng băng 1 HRP bằng BodyPosition + BodyGyro (không replicate sang server)
+local function FRZE_FreezeHRP(hrp)
+    if not hrp or not hrp.Parent then return end
+    if FRZE.Frozen[hrp] then return end -- đã freeze
+
+    local savedPos = hrp.Position
+    local savedCF  = hrp.CFrame
+
+    -- BodyPosition giữ chỗ
+    local bp = Instance.new("BodyPosition")
+    bp.Name        = "HyperSunFreezeBP"
+    bp.Position    = savedPos
+    bp.MaxForce    = Vector3.new(1e9, 1e9, 1e9)
+    bp.P           = 1e5
+    bp.D           = 1e4
+    bp.Parent      = hrp
+
+    -- BodyGyro giữ hướng
+    local bg = Instance.new("BodyGyro")
+    bg.Name      = "HyperSunFreezeBG"
+    bg.CFrame    = savedCF
+    bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    bg.P         = 1e5
+    bg.D         = 500
+    bg.Parent    = hrp
+
+    FRZE.Frozen[hrp] = { bp = bp, bg = bg, pos = savedPos, cf = savedCF }
+end
+
+-- Giải đóng băng 1 HRP
+local function FRZE_UnfreezeHRP(hrp)
+    local data = FRZE.Frozen[hrp]
+    if not data then return end
+    pcall(function() if data.bp and data.bp.Parent then data.bp:Destroy() end end)
+    pcall(function() if data.bg and data.bg.Parent then data.bg:Destroy() end end)
+    FRZE.Frozen[hrp] = nil
+end
+
+-- Đóng băng tất cả player hiện tại
+function FRZE_Apply()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local c   = plr.Character
+            local hrp = c and c:FindFirstChild("HumanoidRootPart")
+            local hum = c and c:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                pcall(function() FRZE_FreezeHRP(hrp) end)
+            end
+        end
+    end
+end
+
+-- Dọn tất cả
+local function FRZE_Clear()
+    for hrp, _ in pairs(FRZE.Frozen) do
+        pcall(function() FRZE_UnfreezeHRP(hrp) end)
+    end
+    -- Dọn bảng
+    for k in pairs(FRZE.Frozen) do FRZE.Frozen[k] = nil end
+end
+
+-- Heartbeat: đảm bảo các player join sau vẫn bị freeze, và xử lý respawn địch
+local function FRZE_StartLoop()
+    if FRZE.Conn then pcall(function() FRZE.Conn:Disconnect() end); FRZE.Conn = nil end
+    local timer = 0
+    FRZE.Conn = RunService.Heartbeat:Connect(function(dt)
+        if not FRZE.Enabled or Unloaded then
+            pcall(function() FRZE.Conn:Disconnect() end); FRZE.Conn = nil
+            return
+        end
+        timer = timer + dt
+        if timer < 0.5 then return end -- kiểm tra mỗi 0.5s
+        timer = 0
+
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                local c   = plr.Character
+                local hrp = c and c:FindFirstChild("HumanoidRootPart")
+                local hum = c and c:FindFirstChildOfClass("Humanoid")
+                if hrp and hum and hum.Health > 0 then
+                    -- Freeze nếu chưa có
+                    if not FRZE.Frozen[hrp] then
+                        pcall(function() FRZE_FreezeHRP(hrp) end)
+                    end
+                end
+            end
+        end
+
+        -- Dọn các hrp đã không còn hợp lệ
+        for hrp, _ in pairs(FRZE.Frozen) do
+            if not hrp or not hrp.Parent then
+                pcall(function() FRZE_UnfreezeHRP(hrp) end)
+                FRZE.Frozen[hrp] = nil
+            end
+        end
+    end)
+end
+
+-- CharacterAdded của từng địch: freeze lại sau respawn
+local function FRZE_WatchPlayer(plr)
+    if plr == LocalPlayer then return end
+    Connections[#Connections + 1] = plr.CharacterAdded:Connect(function(char)
+        if not FRZE.Enabled or Unloaded then return end
+        task.wait(0.6)
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hrp and hum and hum.Health > 0 then
+            pcall(function() FRZE_FreezeHRP(hrp) end)
+        end
+    end)
+end
+
+local function SetFreeze(on)
+    FRZE.Enabled = on and true or false
+    if FRZE.Float  then FRZE.Float.SetOn(FRZE.Enabled) end
+    if FRZE.Toggle then FRZE.Toggle.Set(FRZE.Enabled, false) end
+
+    if FRZE.Enabled then
+        -- Freeze tất cả ngay lập tức
+        FRZE_Apply()
+        -- Bắt đầu vòng lặp maintain
+        FRZE_StartLoop()
+        -- Theo dõi player mới join
+        if FRZE.AddConn then pcall(function() FRZE.AddConn:Disconnect() end) end
+        FRZE.AddConn = Players.PlayerAdded:Connect(function(plr)
+            task.wait(1)
+            if not FRZE.Enabled then return end
+            FRZE_WatchPlayer(plr)
+            local c   = plr.Character
+            local hrp = c and c:FindFirstChild("HumanoidRootPart")
+            if hrp then pcall(function() FRZE_FreezeHRP(hrp) end) end
+        end)
+        -- Watch tất cả player hiện tại cho respawn
+        for _, plr in ipairs(Players:GetPlayers()) do
+            FRZE_WatchPlayer(plr)
+        end
+        Notify("Freeze 3.1 Elite", "Đã đóng băng " .. tostring(#Players:GetPlayers() - 1) .. " người chơi (cục bộ)", 5)
+    else
+        -- Tắt loop
+        if FRZE.Conn then pcall(function() FRZE.Conn:Disconnect() end); FRZE.Conn = nil end
+        if FRZE.AddConn then pcall(function() FRZE.AddConn:Disconnect() end); FRZE.AddConn = nil end
+        -- Giải đóng băng tất cả
+        FRZE_Clear()
+        Notify("Freeze 3.1 Elite", "Đã giải đóng băng toàn bộ", 4)
+    end
+end
+
+-- ── Nút nổi Freeze (mới, riêng biệt với FreezeMarker cũ) ────────
+FRZE.Float = HS.CreateFloat("Freeze", 1150)
+FRZE.Float.OnTap(function() SetFreeze(not FRZE.Enabled) end)
+
+-- ── UI Freeze trong tab Location ─────────────────────────────────
+CreateHeader(HS.TabLoc, "FREEZE · 3.1 ELITE")
+CreateLabel(HS.TabLoc, "Đóng băng toàn bộ kẻ địch trên map — chỉ bạn thấy họ đứng im. Vẫn gây sát thương được.", C.Sub)
+
+FRZE.Toggle = CreateToggle(HS.TabLoc, "Freeze · Bật / Tắt", false, function(s)
+    SetFreeze(s)
+end)
+
+CreateToggle(HS.TabLoc, "Hiện nút nổi Freeze", false, function(on)
+    FRZE.Float.Show(on)
+end)
+
+CreateLabel(HS.TabLoc, "Freeze dùng BodyPosition + BodyGyro cục bộ, không replicate sang server. Địch vẫn di chuyển bình thường phía họ.", C.Sub)
+
+-- ── Hook unload: dọn Freeze ──────────────────────────────────────
+local _frzeOldUnload = Env.HyperSunUnload
+Env.HyperSunUnload = function()
+    FRZE.Enabled = false
+    if FRZE.Conn   then pcall(function() FRZE.Conn:Disconnect() end);   FRZE.Conn   = nil end
+    if FRZE.AddConn then pcall(function() FRZE.AddConn:Disconnect() end); FRZE.AddConn = nil end
+    FRZE_Clear()
+    if _frzeOldUnload then pcall(_frzeOldUnload) end
 end
