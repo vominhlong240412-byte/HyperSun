@@ -72,7 +72,7 @@ local FONT_TITLE = Enum.Font.GothamBlack
 local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local WIN_W, WIN_H = 440, 350
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Beta Fix</font>'
+local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Elite</font>'
 
 local HttpService = game:GetService("HttpService")
 local Notify, GetHRP
@@ -97,7 +97,7 @@ Settings = { Sound = true, Volume = 80 }
 
 -- Settings persistence (executor file API when available; falls back to session memory).
 HS.SettingsFolder = "HyperSun"
-HS.SettingsFile = "HyperSun/HyperSun_3.1_BetaFix_Settings.json"
+HS.SettingsFile = "HyperSun/HyperSun_3.1_Elite_Settings.json"
 HS.SavedSettingsCache = nil
 function HS.BuildSettingsSnapshot()
     return {
@@ -133,7 +133,7 @@ function HS.SaveSettings()
         return HttpService:JSONEncode(HS.BuildSettingsSnapshot())
     end)
     if not ok then
-        Notify("HyperSun 3.0 Elite", "Không thể tạo dữ liệu setting", 4)
+        Notify("HyperSun 3.1 Elite", "Không thể tạo dữ liệu setting", 4)
         return false
     end
     HS.SavedSettingsCache = encoded
@@ -154,9 +154,9 @@ function HS.SaveSettings()
         end)
     end
     if wrote then
-        Notify("HyperSun 3.0 Elite", "Đã lưu và kiểm tra file setting: " .. HS.SettingsFile, 4)
+        Notify("HyperSun 3.1 Elite", "Đã lưu và kiểm tra file setting: " .. HS.SettingsFile, 4)
     else
-        Notify("HyperSun 3.0 Elite", "Không thể ghi file. Hãy kiểm tra file API/quyền của executor.", 5)
+        Notify("HyperSun 3.1 Elite", "Không thể ghi file. Hãy kiểm tra file API/quyền của executor.", 5)
     end
     return wrote
 end
@@ -173,12 +173,12 @@ function HS.LoadSettings()
         encoded = HS.SavedSettingsCache
     end
     if type(encoded) ~= "string" then
-        Notify("HyperSun 3.0 Elite", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
+        Notify("HyperSun 3.1 Elite", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
         return false
     end
     local ok, data = pcall(function() return HttpService:JSONDecode(encoded) end)
     if not ok or type(data) ~= "table" then
-        Notify("HyperSun 3.0 Elite", "File setting không hợp lệ", 4)
+        Notify("HyperSun 3.1 Elite", "File setting không hợp lệ", 4)
         return false
     end
     if type(data.Player) == "table" then
@@ -209,7 +209,7 @@ function HS.LoadSettings()
         end)
     end
     if HS.SetFlySpeed and State.Memory.FlyEnabled then pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end) end
-    Notify("HyperSun 3.0 Elite", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
+    Notify("HyperSun 3.1 Elite", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
     return true
 end
 
@@ -455,13 +455,13 @@ end
 task.spawn(function()
 task.wait(4)
 if Unloaded then return end
-Notify("HyperSun 3.0 Elite loaded", "✦ Hyper Sun 3.0 Elite — Ready", 5)
+Notify("HyperSun 3.1 Elite loaded", "✦ Hyper Sun 3.1 Elite — Ready", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("Lib loading", "Hyper Sun 3.0 Elite — OK", 5)
+Notify("Lib loading", "Hyper Sun 3.1 Elite — OK", 5)
 task.wait(5)
 if Unloaded then return end
-Notify("64bit", "Hyper Sun 3.0 Elite — 64bit OK", 5)
+Notify("64bit", "Hyper Sun 3.1 Elite — 64bit OK", 5)
 if not HasDrawing then
 task.wait(5)
 Notify("Cảnh báo", "Executor không có Drawing: ESP/FOV tắt", 5)
@@ -616,7 +616,7 @@ task.spawn(function()
         BackgroundTransparency = 1, Text = "", RichText = true, TextColor3 = Color3.new(1,1,1),
         Font = Enum.Font.GothamBlack, TextSize = 22, TextWrapped = true, ZIndex = 81
     }, splash)
-    local full = "Hyper Sun 3.1 Beta Fix"
+    local full = "Hyper Sun 3.1 Elite"
     for i = 1, #full do
         if Unloaded or not splash.Parent then break end
         local part = string.sub(full, 1, i)
@@ -917,7 +917,7 @@ end)
 CreateToggle(HS.TabFunc, "Patched AntiBan (UI only)", false, function(s)
 State.Features.AntiBanUI = s
 if s then
-Notify("Patched AntiBan 2.9 Beta Fix", "Trạng thái giao diện; không bảo đảm chống ban", 5)
+Notify("Patched AntiBan 3.1 Elite", "Trạng thái giao diện; không bảo đảm chống ban", 5)
 else
 Notify("AntiBan UI đã tắt", "Không có bảo vệ chống ban thực sự", 4)
 end
@@ -934,7 +934,7 @@ CreateLabel(HS.TabFunc, "AntiBan: Active (trạng thái hiển thị)", C.Sub)
 CreateLabel(HS.TabFunc, "Anti Kick: N/A", C.Sub)
 CreateLabel(HS.TabFunc, "Ghi chú: ESP/Aim có thể vi phạm quy tắc game; không có tính năng bất tử được bảo đảm.", C.Sub)
 CreateLabel(HS.TabFunc, "Memory/Tele không có bảo đảm Anti 50%.", C.Sub)
-CreateLabel(HS.TabFunc, "By: Hyper Sun 3.0 Elite", C.Text)
+CreateLabel(HS.TabFunc, "By: Hyper Sun 3.1 Elite", C.Text)
 
 CreateHeader(HS.TabFunc, "BỘ LỌC MỤC TIÊU")
 CreateToggle(HS.TabFunc, "Team Check", false, function(s) State.Features.TeamCheck = s end)
@@ -1315,7 +1315,7 @@ HS.FlyFloat.OnTap(function() HS.SetFly(not State.Memory.FlyEnabled) end)
 CreateHeader(HS.TabFly, "TELE GHOST")
 CreateButton(HS.TabFly, "Tạo nút nổi TeleGhost", function()
     HS.GhostFloat.Show(true)
-    Notify("HyperSun 2.9 Beta Fix · TeleGhost", "Đã hiện nút nổi TeleGhost", 3)
+    Notify("HyperSun 3.1 Elite · TeleGhost", "Đã hiện nút nổi TeleGhost", 3)
 end)
 CreateButton(HS.TabFly, "Bật / Tắt TeleGhost", function() HS.SetGhost(not HS.GhostEnabled) end)
 CreateLabel(HS.TabFly, "Bật để điều khiển bản sao; tắt để xác nhập hồn tại vị trí bản sao. Hiệu ứng chỉ được xử lý ở máy bạn.", C.Sub)
@@ -1655,9 +1655,9 @@ function HS.SetFreezeMarker(on)
                 HS.ClearFreezeMarker()
             end
         end)
-        Notify("Hyper Sun 2.9 Beta Fix · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
+        Notify("HyperSun 3.1 Elite · Freeze", "Đã bật đánh dấu mục tiêu gần tâm ngắm", 4)
     else
-        Notify("Hyper Sun 2.9 Beta Fix · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
+        Notify("HyperSun 3.1 Elite · Freeze", "Đã tắt đánh dấu mục tiêu", 3)
     end
 end
 HS.FreezeFloat.OnTap(function() HS.SetFreezeMarker(not HS.FreezeEnabled) end)
@@ -1682,7 +1682,7 @@ function HS.SetTeleX3(on)
     HS.TeleX3Float.SetOn(HS.TeleX3Enabled)
     HS.ClearTeleX3()
     if not HS.TeleX3Enabled then
-        Notify("HyperSun 2.9 Beta Fix · Tele X3", "Đã tắt dù lượn và khôi phục tư thế", 3)
+        Notify("HyperSun 3.1 Elite · Tele X3", "Đã tắt dù lượn và khôi phục tư thế", 3)
         return
     end
     local char = LocalPlayer.Character
@@ -1691,7 +1691,7 @@ function HS.SetTeleX3(on)
     if not char or not hum or not root then
         HS.TeleX3Enabled = false
         HS.TeleX3Float.SetOn(false)
-        Notify("HyperSun 2.9 Beta Fix · Tele X3", "Nhân vật chưa sẵn sàng", 4)
+        Notify("HyperSun 3.1 Elite · Tele X3", "Nhân vật chưa sẵn sàng", 4)
         return
     end
     for _, motor in ipairs(char:GetDescendants()) do
@@ -1754,7 +1754,7 @@ function HS.SetTeleX3(on)
     part("HarnessBack", Vector3.new(1.0, 1.25, 0.22), at(0, 1.25, 0.45), Color3.fromRGB(22, 22, 26), Enum.Material.SmoothPlastic)
     part("HarnessRedStripe", Vector3.new(0.12, 1.0, 0.06), at(0, 1.25, 0.31), Color3.fromRGB(240, 28, 45), Enum.Material.Neon)
     for _, obj in ipairs(HS.TeleX3Objects) do weldToRoot(obj) end
-    Notify("HyperSun 2.9 Beta Fix · Tele X3", "Đã bật dù lượn phong cách battle-royale (hiển thị cục bộ)", 4)
+    Notify("HyperSun 3.1 Elite · Tele X3", "Đã bật dù lượn phong cách battle-royale (hiển thị cục bộ)", 4)
 end
 HS.TeleX3Float.OnTap(function() HS.SetTeleX3(not HS.TeleX3Enabled) end)
 CreateHeader(HS.TabFly, "TELE BACKPACK")
@@ -1831,7 +1831,7 @@ function HS.SetTeleBoard(on, allPlayers)
     if allPlayers ~= nil then HS.TeleBoardAll = allPlayers and true or false end
     HS.ClearTeleBoards()
     if not HS.TeleBoardEnabled then
-        Notify("HyperSun 2.9 Beta Fix · Tele Board", "Đã tắt ván trượt cầu vồng", 3)
+        Notify("HyperSun 3.1 Elite · Tele Board", "Đã tắt ván trượt cầu vồng", 3)
         return
     end
     local function refresh()
@@ -1857,7 +1857,7 @@ function HS.SetTeleBoard(on, allPlayers)
     end
     refresh()
     HS.TeleBoardConnection = RunService.Heartbeat:Connect(refresh)
-    Notify("HyperSun 2.9 Beta Fix · Tele Board", HS.TeleBoardAll and "Ván trượt hiển thị dưới mọi người chơi trên máy bạn" or "Ván trượt chỉ hiển thị dưới chân bạn", 4)
+    Notify("HyperSun 3.1 Elite · Tele Board", HS.TeleBoardAll and "Ván trượt hiển thị dưới mọi người chơi trên máy bạn" or "Ván trượt chỉ hiển thị dưới chân bạn", 4)
 end
 CreateHeader(HS.TabFly, "TELE BOARD")
 CreateButton(HS.TabFly, "Tele Board · Chỉ riêng tôi", function() HS.SetTeleBoard(not HS.TeleBoardEnabled, false) end)
@@ -1917,7 +1917,7 @@ function HS.SetGhost(on)
         local realRoot = real and real:FindFirstChild("HumanoidRootPart")
         local realHum = real and real:FindFirstChildOfClass("Humanoid")
         if not real or not realRoot or not realHum then
-            Notify("HyperSun 2.9 Beta Fix · TeleGhost", "Không tìm thấy nhân vật hợp lệ", 4)
+            Notify("HyperSun 3.1 Elite · TeleGhost", "Không tìm thấy nhân vật hợp lệ", 4)
             HS.GhostFloat.SetOn(false)
             return
         end
@@ -1930,7 +1930,7 @@ function HS.SetGhost(on)
         end)
         real.Archivable = oldArchivable
         if not ok or not clone then
-            Notify("HyperSun 2.9 Beta Fix · TeleGhost", "Không thể tạo bản sao nhân vật", 5)
+            Notify("HyperSun 3.1 Elite · TeleGhost", "Không thể tạo bản sao nhân vật", 5)
             HS.GhostFloat.SetOn(false)
             return
         end
@@ -1949,7 +1949,7 @@ function HS.SetGhost(on)
         local cloneHum = clone:FindFirstChildOfClass("Humanoid")
         if not cloneRoot or not cloneHum then
             clone:Destroy()
-            Notify("HyperSun 2.9 Beta Fix · TeleGhost", "Bản sao thiếu Humanoid hoặc HumanoidRootPart", 4)
+            Notify("HyperSun 3.1 Elite · TeleGhost", "Bản sao thiếu Humanoid hoặc HumanoidRootPart", 4)
             HS.GhostFloat.SetOn(false)
             return
         end
@@ -2020,7 +2020,7 @@ function HS.SetGhost(on)
             camera.CameraSubject = cloneHum
         end
         HS.GhostFloat.SetOn(true)
-        Notify("HyperSun 2.9 Beta Fix · TeleGhost", "Đã tách hồn khỏi xác; di chuyển bản sao cục bộ", 5)
+        Notify("HyperSun 3.1 Elite · TeleGhost", "Đã tách hồn khỏi xác; di chuyển bản sao cục bộ", 5)
     else
         HS.GhostEnabled = false
         if HS.GhostMoveConnection then pcall(function() HS.GhostMoveConnection:Disconnect() end); HS.GhostMoveConnection = nil end
@@ -2047,7 +2047,7 @@ function HS.SetGhost(on)
         HS.GhostControls, HS.GhostRealRootCFrame, HS.GhostRealAnchored, HS.GhostRealAutoRotate = nil, nil, nil, nil
         HS.GhostCameraSubject, HS.GhostCameraType = nil, nil
         HS.GhostFloat.SetOn(false)
-        Notify("HyperSun 2.9 Beta Fix · TeleGhost", "Đã nhập hồn; xác đứng tại vị trí hồn kết thúc", 4)
+        Notify("HyperSun 3.1 Elite · TeleGhost", "Đã nhập hồn; xác đứng tại vị trí hồn kết thúc", 4)
     end
 end
 HS.GhostFloat.OnTap(function() HS.SetGhost(not HS.GhostEnabled) end)
@@ -2681,7 +2681,7 @@ CreateSlider(HS.TabSet, "Cỡ menu (%)", 50, 160, math.floor(HS.startScale * 100
 CreateButton(HS.TabSet, "Đưa menu về giữa màn hình", function()
 Main.Position = UDim2.new(0.5, 0, 0.5, 0)
 end)
-CreateLabel(HS.TabSet, 'Phiên bản: <font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Beta Fix</font>')
+CreateLabel(HS.TabSet, 'Phiên bản: <font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Elite</font>')
 
 CreateHeader(HS.TabSet, "HỆ THỐNG")
 
@@ -2744,7 +2744,7 @@ function HS.SafeFeatureCall(featureName, fn, ...)
     local args = {...}
     local ok, err = pcall(function() fn(table.unpack(args)) end)
     if not ok then
-        warn("[Hyper Sun 3.0 Elite] " .. tostring(featureName) .. ": " .. tostring(err))
+        warn("[Hyper Sun 3.1 Elite] " .. tostring(featureName) .. ": " .. tostring(err))
         if not HS.FeatureErrorShown[featureName] then
             HS.FeatureErrorShown[featureName] = true
             pcall(function()
@@ -2943,12 +2943,12 @@ local function ApplyTheme(name)
     pcall(function()
         for _, v in ipairs(gui:GetDescendants()) do
             if v:IsA("TextLabel") and v.RichText and v.Text:find("HyperSun") then
-                v.Text = '<font color="' .. t.TitleA .. '">✦ HyperSun</font> <font color="' .. t.TitleB .. '">3.0 Elite</font>'
+                v.Text = '<font color="' .. t.TitleA .. '">✦ HyperSun</font> <font color="' .. t.TitleB .. '">3.1 Elite</font>'
             end
         end
     end)
 
-    Notify("HyperSun 3.0 Elite · Màu", "Đã áp dụng giao diện: " .. name, 4)
+    Notify("HyperSun 3.1 Elite · Màu", "Đã áp dụng giao diện: " .. name, 4)
 end
 
 -- Thêm section Chỉnh Màu vào tab Setting
@@ -3083,7 +3083,7 @@ local InjHeader = Create("Frame", { Size = UDim2.new(1,0,0,48), BackgroundTransp
 Create("TextLabel", {
     Size = UDim2.new(1,-16,1,0), Position = UDim2.new(0,14,0,0),
     BackgroundTransparency = 1, RichText = true,
-    Text = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Beta Fix</font>',
+    Text = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Elite</font>',
     TextColor3 = Color3.new(1,1,1), Font = FONT_B, TextSize = 20,
     TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 102,
 }, InjHeader)
@@ -3135,7 +3135,7 @@ local BypassBtn = MakeInjBtn(
     Color3.fromRGB(80, 160, 255)
 )
 local InjectBtn = MakeInjBtn(
-    "⚡  Injector Script 3.1 Beta Fix",
+    "⚡  Injector Script 3.1 Elite",
     114,
     Color3.fromRGB(180, 20, 40),
     Color3.fromRGB(255, 70, 90)
@@ -3176,7 +3176,7 @@ InjectBtn.MouseButton1Click:Connect(function()
         { BackgroundTransparency = 1 }):Play()
     task.delay(0.35, function()
         pcall(function() InjGui:Destroy() end)
-        Notify("HyperSun 3.1 Beta Fix", "✦ Script đã được inject thành công!", 5)
+        Notify("HyperSun 3.1 Elite", "✦ Script đã được inject thành công!", 5)
     end)
 end)
 
@@ -3254,12 +3254,12 @@ local function SetHitFly(on)
     HF.Enabled = on and true or false
     if HF.Float then HF.Float.SetOn(HF.Enabled) end
     if HF.Enabled then
-        Notify("HitFly 3.1 Beta Fix", "Bật — Cao: "..HF.Height.." | Tốc: "..HF.Speed, 4)
+        Notify("HitFly 3.1 Elite", "Bật — Cao: "..HF.Height.." | Tốc: "..HF.Speed, 4)
         HitFly_Loop()
     else
         HF.Busy = false
         if HF.Conn then pcall(function() HF.Conn:Disconnect() end); HF.Conn=nil end
-        Notify("HitFly 3.1 Beta Fix", "Đã tắt HitFly", 3)
+        Notify("HitFly 3.1 Elite", "Đã tắt HitFly", 3)
     end
 end
 
@@ -3268,7 +3268,7 @@ HF.Float = HS.CreateFloat("HitFly", 999)
 HF.Float.OnTap(function() SetHitFly(not HF.Enabled) end)
 
 -- Thêm UI vào cuối tab AimBot
-CreateHeader(HS.TabAimbot, "HITFLY · 3.1 BETA FIX")
+CreateHeader(HS.TabAimbot, "HITFLY · 3.1 ELITE")
 
 local hfToggle = CreateToggle(HS.TabAimbot, "HitFly · Bật / Tắt", false, function(s)
     SetHitFly(s)
@@ -3298,7 +3298,7 @@ Env.HyperSunUnload = function()
 end
 
 -- ════════════════════════════════════════════════════════════════
---  DASH · 3.1 Beta Fix
+--  DASH · 3.1 Elite
 --  Thêm vào tab AimBot, nút nổi "Dash" riêng
 -- ════════════════════════════════════════════════════════════════
 
@@ -3367,9 +3367,9 @@ local function SetDash(on)
     DS.Enabled = on and true or false
     if DS.Float then DS.Float.SetOn(DS.Enabled) end
     if DS.Enabled then
-        Notify("Dash 3.1 Beta Fix", "Bật — Quãng đường: " .. DS.Dist .. " studs", 3)
+        Notify("Dash 3.1 Elite", "Bật — Quãng đường: " .. DS.Dist .. " studs", 3)
     else
-        Notify("Dash 3.1 Beta Fix", "Đã tắt Dash", 3)
+        Notify("Dash 3.1 Elite", "Đã tắt Dash", 3)
     end
 end
 
@@ -3390,7 +3390,7 @@ Connections[#Connections + 1] = UserInputService.InputBegan:Connect(function(inp
 end)
 
 -- ── UI Dash trong tab AimBot ─────────────────────────────────
-CreateHeader(HS.TabAimbot, "DASH · 3.1 BETA FIX")
+CreateHeader(HS.TabAimbot, "DASH · 3.1 ELITE")
 
 CreateToggle(HS.TabAimbot, "Dash · Bật / Tắt", false, function(s)
     SetDash(s)
@@ -3419,4 +3419,278 @@ Env.HyperSunUnload = function()
     DS.Enabled = false
     DS.Busy    = false
     if _dashOldUnload then pcall(_dashOldUnload) end
+end
+
+-- ════════════════════════════════════════════════════════════════
+--  HYPER SUN 3.1 ELITE — PATCH BLOCK 2
+--  1. Cải thiện giao diện (UI polish toàn diện)
+--  2. AimKill — tự động kill trong phạm vi với nút nổi riêng
+-- ════════════════════════════════════════════════════════════════
+
+-- ── 1. UI POLISH ─────────────────────────────────────────────────
+-- Áp dụng ngay sau khi GUI tồn tại (defer để đảm bảo mọi widget đã render)
+task.defer(function()
+    if Unloaded then return end
+    local gui = Root:FindFirstChild("HyperSunUI")
+    if not gui then return end
+
+    -- Thêm drop shadow nhẹ cho MainFrame nếu chưa có
+    local mainFrame = gui:FindFirstChild("MainFrame")
+    if mainFrame and not mainFrame:FindFirstChild("HSShadow") then
+        local shadow = Instance.new("ImageLabel")
+        shadow.Name = "HSShadow"
+        shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+        shadow.BackgroundTransparency = 1
+        shadow.Position = UDim2.new(0.5, 0, 0.5, 6)
+        shadow.Size = UDim2.new(1, 36, 1, 36)
+        shadow.ZIndex = mainFrame.ZIndex - 1
+        shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+        shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+        shadow.ImageTransparency = 0.65
+        shadow.ScaleType = Enum.ScaleType.Slice
+        shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+        shadow.Parent = mainFrame.Parent
+    end
+
+    -- Neon accent line dưới header
+    for _, child in ipairs(gui:GetDescendants()) do
+        pcall(function()
+            if child.Name == "HSTitleBar" then
+                if not child:FindFirstChild("HSNeonLine") then
+                    local line = Instance.new("Frame")
+                    line.Name = "HSNeonLine"
+                    line.Size = UDim2.new(1, 0, 0, 2)
+                    line.Position = UDim2.new(0, 0, 1, -2)
+                    line.BackgroundColor3 = C.Accent
+                    line.BorderSizePixel = 0
+                    line.ZIndex = child.ZIndex + 1
+                    line.Parent = child
+                    -- Pulse glow
+                    task.spawn(function()
+                        while not Unloaded and line.Parent do
+                            TweenService:Create(line, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {BackgroundTransparency = 0.55}):Play()
+                            task.wait(2.2)
+                        end
+                    end)
+                    local c2 = Instance.new("UICorner")
+                    c2.CornerRadius = UDim.new(1, 0)
+                    c2.Parent = line
+                end
+            end
+        end)
+    end
+
+    -- Upgrade UIStroke thickness trên mọi toggle row (giao diện sắc nét hơn)
+    for _, v in ipairs(gui:GetDescendants()) do
+        pcall(function()
+            if v:IsA("UIStroke") and v.Color == C.Accent and v.Thickness < 1.8 then
+                v.Thickness = 1.8
+                v.Transparency = 0.08
+            end
+        end)
+    end
+
+    -- Gradient tinh tế hơn trên mọi row Item (không ảnh hưởng tab chính)
+    for _, v in ipairs(gui:GetDescendants()) do
+        pcall(function()
+            if v:IsA("Frame") and v.BackgroundColor3 == C.Item and not v:FindFirstChildOfClass("UIGradient") then
+                local g = Instance.new("UIGradient")
+                g.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 16, 22)),
+                    ColorSequenceKeypoint.new(1, C.Item),
+                })
+                g.Rotation = 90
+                g.Parent = v
+            end
+        end)
+    end
+end)
+
+-- ── 2. AIMKILL ───────────────────────────────────────────────────
+local AK = {
+    Enabled  = false,
+    Range    = 60,       -- studs — phạm vi tính từ HRP của mình
+    Rate     = 0.08,     -- giây giữa mỗi lần thử (không spam quá mức)
+    Float    = nil,
+    Toggle   = nil,
+    Conn     = nil,
+    LastHit  = {},       -- [player] = tick() — tránh double-hit liên tiếp
+    CoolPer  = 0.25,     -- giây cooldown mỗi target riêng
+}
+
+-- Lấy danh sách mục tiêu hợp lệ trong phạm vi, có kiểm tra team + alive
+local function AK_GetTargets()
+    local myHRP, myHum = GetHRP()
+    if not myHRP or not myHum or myHum.Health <= 0 then return {} end
+    local myPos = myHRP.Position
+    local targets = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and Alive(plr) and IsEnemy(plr) then
+            local c = plr.Character
+            local hrp = c and c:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local dist = (hrp.Position - myPos).Magnitude
+                if dist <= AK.Range then
+                    table.insert(targets, { plr = plr, hrp = hrp, dist = dist })
+                end
+            end
+        end
+    end
+    -- Sắp xếp từ gần đến xa
+    table.sort(targets, function(a, b) return a.dist < b.dist end)
+    return targets
+end
+
+-- Thực hiện đòn đánh vào 1 target — dùng Tool:Activate nếu có, fallback Humanoid:TakeDamage (client-side)
+local function AK_HitTarget(target)
+    local now = tick()
+    local plr = target.plr
+    -- Cooldown riêng mỗi target
+    if AK.LastHit[plr] and (now - AK.LastHit[plr]) < AK.CoolPer then return end
+    AK.LastHit[plr] = now
+
+    local char = LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+
+    local ok = false
+
+    -- Phương pháp 1: dùng Tool đang cầm
+    if tool then
+        local handle = tool:FindFirstChild("Handle")
+        local hum = target.plr.Character and target.plr.Character:FindFirstChildOfClass("Humanoid")
+
+        -- Teleport tool handle tạm vào người địch rồi Activate
+        if handle and hum then
+            local origCF = handle.CFrame
+            pcall(function()
+                handle.CFrame = target.hrp.CFrame
+                tool:Activate()
+            end)
+            task.delay(0.04, function()
+                pcall(function()
+                    if handle and handle.Parent then
+                        handle.CFrame = origCF
+                    end
+                end)
+            end)
+            ok = true
+        else
+            pcall(function() tool:Activate() end)
+            ok = true
+        end
+    end
+
+    -- Phương pháp 2 (fallback): TakeDamage client-side (chỉ hiệu quả nếu game không lock health server-side)
+    if not ok then
+        local hum = target.plr.Character and target.plr.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            pcall(function() hum:TakeDamage(hum.MaxHealth) end)
+        end
+    end
+end
+
+-- Vòng lặp AimKill
+local function AK_Loop()
+    if AK.Conn then pcall(function() AK.Conn:Disconnect() end); AK.Conn = nil end
+    if not AK.Enabled then return end
+
+    local timer = 0
+    AK.Conn = RunService.Heartbeat:Connect(function(dt)
+        if not AK.Enabled or Unloaded then
+            pcall(function() AK.Conn:Disconnect() end); AK.Conn = nil
+            return
+        end
+        timer = timer + dt
+        if timer < AK.Rate then return end
+        timer = 0
+
+        -- Dọn LastHit cũ để không rò bộ nhớ
+        local now = tick()
+        for plr, t in pairs(AK.LastHit) do
+            if now - t > 5 then AK.LastHit[plr] = nil end
+        end
+
+        local targets = AK_GetTargets()
+        if #targets == 0 then return end
+
+        -- Thử tất cả target trong phạm vi, ưu tiên gần nhất
+        for i = 1, math.min(#targets, 4) do
+            pcall(function() AK_HitTarget(targets[i]) end)
+        end
+    end)
+end
+
+local function SetAimKill(on)
+    AK.Enabled = on and true or false
+    -- Dọn cooldown khi bật lại
+    if AK.Enabled then ClearTableCompat(AK.LastHit) end
+    if AK.Float then AK.Float.SetOn(AK.Enabled) end
+    if AK.Toggle then AK.Toggle.Set(AK.Enabled, false) end
+    if AK.Enabled then
+        Notify("AimKill 3.1 Elite", "Bật — Phạm vi: " .. AK.Range .. " studs", 4)
+        AK_Loop()
+    else
+        if AK.Conn then pcall(function() AK.Conn:Disconnect() end); AK.Conn = nil end
+        Notify("AimKill 3.1 Elite", "Đã tắt AimKill", 3)
+    end
+end
+
+-- Nút nổi AimKill (riêng biệt, kích thước nhỏ)
+AK.Float = HS.CreateFloat("AimKill", 1100)
+AK.Float.OnTap(function() SetAimKill(not AK.Enabled) end)
+
+-- ── UI AimKill trong tab AimBot ──────────────────────────────────
+CreateHeader(HS.TabAimbot, "AIMKILL · 3.1 ELITE")
+
+AK.Toggle = CreateToggle(HS.TabAimbot, "AimKill · Bật / Tắt", false, function(s)
+    SetAimKill(s)
+end)
+
+CreateSlider(HS.TabAimbot, "Phạm vi AimKill (studs)", 5, 200, 60, function(v)
+    AK.Range = v
+    if AK.Enabled then Notify("AimKill", "Phạm vi → " .. v .. " studs", 2) end
+end)
+
+CreateSlider(HS.TabAimbot, "Tốc độ AimKill (ms/lần)", 50, 800, 80, function(v)
+    AK.Rate = v / 1000
+end)
+
+CreateToggle(HS.TabAimbot, "Hiện nút nổi AimKill", false, function(on)
+    AK.Float.Show(on)
+end)
+
+CreateLabel(HS.TabAimbot, "AimKill dùng Tool đang cầm để tấn công tất cả kẻ địch trong phạm vi. Nếu không có Tool sẽ fallback TakeDamage client-side.", C.Sub)
+CreateLabel(HS.TabAimbot, "Hiệu quả phụ thuộc vào cơ chế combat của từng game. Team Check được tôn trọng.", C.Sub)
+
+-- ── Sửa lỗi: CharacterAdded re-init AimKill & Dash & HitFly ─────
+Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.8)
+    if Unloaded then return end
+
+    -- Re-init AimKill
+    if AK.Enabled then
+        ClearTableCompat(AK.LastHit)
+        AK_Loop()
+    end
+
+    -- Re-init HitFly
+    if HF and HF.Enabled then
+        HF.Busy = false
+        HitFly_Loop()
+    end
+
+    -- Re-init Dash
+    if DS and DS.Enabled then
+        DS.Busy = false
+        DS.LastDash = 0
+    end
+end)
+
+-- ── Hook unload: dọn AimKill ────────────────────────────────────
+local _akOldUnload = Env.HyperSunUnload
+Env.HyperSunUnload = function()
+    AK.Enabled = false
+    if AK.Conn then pcall(function() AK.Conn:Disconnect() end); AK.Conn = nil end
+    ClearTableCompat(AK.LastHit)
+    if _akOldUnload then pcall(_akOldUnload) end
 end
