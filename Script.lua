@@ -147,87 +147,107 @@ function HS.BuildSettingsSnapshot()
     }
 end
 function HS.SaveSettings()
-    local ok, encoded = pcall(function()
+    -- FIX: pcall trả về (bool, value) — phải lấy giá trị thứ 2
+    local encodeOk, encoded = pcall(function()
         return HttpService:JSONEncode(HS.BuildSettingsSnapshot())
     end)
-    if not ok then
-        Notify("HyperSun 3.1 Elite", "Không thể tạo dữ liệu setting", 4)
+    if not encodeOk or type(encoded) ~= "string" then
+        Notify("HyperSun 3.2", "Không thể tạo dữ liệu setting", 4)
         return false
     end
-    HS.SavedSettingsCache = encoded
+    HS.SavedSettingsCache = encoded  -- luôn cache vào bộ nhớ
+
+    -- FIX: kiểm tra wrote là boolean từ pcall, không dùng giá trị bên trong
     local wrote = false
     if type(writefile) == "function" then
-        wrote = pcall(function()
-            if type(isfolder) == "function" and type(makefolder) == "function" then
-                local folderExists = false
-                pcall(function() folderExists = isfolder(HS.SettingsFolder) end)
-                if not folderExists then pcall(function() makefolder(HS.SettingsFolder) end) end
-            end
-            pcall(function() writefile(HS.SettingsFile, encoded) end)
-            if type(readfile) == "function" then
-                local verify = pcall(function() readfile(HS.SettingsFile) end)
-                assert(type(verify) == "string" and #verify > 0, "verify failed")
-                assert(HttpService:JSONDecode(verify), "invalid saved JSON")
+        -- Tạo folder
+        pcall(function()
+            if type(isfolder) == "function" and not isfolder(HS.SettingsFolder) then
+                if type(makefolder) == "function" then makefolder(HS.SettingsFolder) end
             end
         end)
+        -- Ghi file
+        local writeOk = pcall(writefile, HS.SettingsFile, encoded)
+        if writeOk then
+            -- Verify: đọc lại và parse JSON
+            if type(readfile) == "function" then
+                local readOk, content = pcall(readfile, HS.SettingsFile)
+                if readOk and type(content) == "string" and #content > 0 then
+                    local parseOk = pcall(function() HttpService:JSONDecode(content) end)
+                    wrote = parseOk
+                end
+            else
+                wrote = true  -- không có readfile thì tin vào writeOk
+            end
+        end
     end
+
     if wrote then
-        Notify("HyperSun 3.1 Elite", "Đã lưu và kiểm tra file setting: " .. HS.SettingsFile, 4)
+        Notify("HyperSun 3.2", "Đã lưu setting: " .. HS.SettingsFile, 4)
     else
-        Notify("HyperSun 3.1 Elite", "Không thể ghi file. Hãy kiểm tra file API/quyền của executor.", 5)
+        -- Vẫn OK vì đã cache trong session
+        Notify("HyperSun 3.2", "Đã lưu setting vào bộ nhớ phiên (không ghi được file).", 4)
+        wrote = true  -- session cache thành công
     end
     return wrote
 end
+
 function HS.LoadSettings()
     local encoded = nil
+
+    -- FIX: không lồng pcall trong pcall — mỗi lớp lấy giá trị đúng
     if type(isfile) == "function" and type(readfile) == "function" then
-        local exists, yes = pcall(function() return (pcall(function() return isfile(HS.SettingsFile) end)) end)
-        if exists and yes then
-            local ok, data = pcall(function() return pcall(function() readfile(HS.SettingsFile) end) end)
-            if ok then encoded = data end
+        local existsOk, exists = pcall(isfile, HS.SettingsFile)
+        if existsOk and exists == true then
+            local readOk, content = pcall(readfile, HS.SettingsFile)
+            -- FIX: content phải là string, không phải boolean
+            if readOk and type(content) == "string" and #content > 4 then
+                encoded = content
+            end
         end
     end
-    if type(encoded) ~= "string" and (type(readfile) ~= "function" or type(isfile) ~= "function") then
+
+    -- Fallback sang cache session
+    if type(encoded) ~= "string" then
         encoded = HS.SavedSettingsCache
     end
+
     if type(encoded) ~= "string" then
-        Notify("HyperSun 3.1 Elite", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
+        Notify("HyperSun 3.2", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
         return false
     end
-    local ok, data = pcall(function() return HttpService:JSONDecode(encoded) end)
-    if not ok or type(data) ~= "table" then
-        Notify("HyperSun 3.1 Elite", "File setting không hợp lệ", 4)
+
+    local parseOk, data = pcall(function() return HttpService:JSONDecode(encoded) end)
+    if not parseOk or type(data) ~= "table" then
+        Notify("HyperSun 3.2", "File setting không hợp lệ", 4)
         return false
     end
-    if type(data.Player) == "table" then
-        for k, v in pairs(data.Player) do if State.Player[k] ~= nil then State.Player[k] = v end end
-    end
-    if type(data.Memory) == "table" then
-        for k, v in pairs(data.Memory) do if State.Memory[k] ~= nil then State.Memory[k] = v end end
-    end
-    if type(data.ESP) == "table" then
-        for k, v in pairs(data.ESP) do if State.ESP[k] ~= nil then State.ESP[k] = v end end
-    end
-    if type(data.Aimbot) == "table" then
-        for k, v in pairs(data.Aimbot) do if State.Aimbot[k] ~= nil then State.Aimbot[k] = v end end
-    end
-    if type(data.Under) == "table" then
-        for k, v in pairs(data.Under) do if State.Under[k] ~= nil then State.Under[k] = v end end
-    end
-    if type(data.Settings) == "table" then
-        for k, v in pairs(data.Settings) do if State.Settings[k] ~= nil then State.Settings[k] = v end end
-    end
+
+    if type(data.Player)   == "table" then for k,v in pairs(data.Player)   do if State.Player[k]   ~= nil then State.Player[k]   = v end end end
+    if type(data.Memory)   == "table" then for k,v in pairs(data.Memory)   do if State.Memory[k]   ~= nil then State.Memory[k]   = v end end end
+    if type(data.ESP)      == "table" then for k,v in pairs(data.ESP)      do if State.ESP[k]      ~= nil then State.ESP[k]      = v end end end
+    if type(data.Aimbot)   == "table" then for k,v in pairs(data.Aimbot)   do if State.Aimbot[k]  ~= nil then State.Aimbot[k]   = v end end end
+    if type(data.Under)    == "table" then for k,v in pairs(data.Under)    do if State.Under[k]    ~= nil then State.Under[k]    = v end end end
+    if type(data.Settings) == "table" then for k,v in pairs(data.Settings) do if State.Settings[k] ~= nil then State.Settings[k] = v end end end
+
     State.Player.Speed = math.clamp(tonumber(State.Player.Speed) or 16, 1, 10000)
-    State.Player.Jump = math.clamp(tonumber(State.Player.Jump) or 50, 1, 500)
-    local _, hum = (type(GetHRP) == "function" and GetHRP()) or (nil, nil)
-    if hum then
-        pcall(function()
-            if State.Player.SpeedOn then hum.WalkSpeed = State.Player.Speed end
-            if State.Player.JumpOn then hum.JumpPower = State.Player.Jump end
-        end)
+    State.Player.Jump  = math.clamp(tonumber(State.Player.Jump)  or 50, 1, 500)
+
+    -- FIX: GetHRP trả về 2 giá trị (hrp, hum) — phải nhận đúng cả 2
+    if type(GetHRP) == "function" then
+        local hrp, hum = GetHRP()
+        if hum then
+            pcall(function()
+                if State.Player.SpeedOn then hum.WalkSpeed = State.Player.Speed end
+                if State.Player.JumpOn  then hum.JumpPower = State.Player.Jump  end
+            end)
+        end
     end
-    if HS.SetFlySpeed and State.Memory.FlyEnabled then pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end) end
-    Notify("HyperSun 3.1 Elite", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
+
+    if HS.SetFlySpeed and State.Memory.FlyEnabled then
+        pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end)
+    end
+    Notify("HyperSun 3.2", "Đã nạp dữ liệu setting thành công.", 4)
     return true
 end
 
