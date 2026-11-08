@@ -23,17 +23,25 @@ end
 pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
 
 local function GetRoot()
-if gethui then
-local ok, r = pcall(gethui)
-if ok and r then return r end
-end
-local ok = pcall(function()
-local g = Instance.new("ScreenGui")
-g.Parent = CoreGui
-g:Destroy()
-end)
-if ok then return CoreGui end
-return LocalPlayer:WaitForChild("PlayerGui")
+    -- Try gethui first (most executors)
+    if type(gethui) == "function" then
+        local ok, r = pcall(gethui)
+        if ok and r then return r end
+    end
+    -- Try syn.protect_gui / protect_gui
+    if type(syn) == "table" and type(syn.protect_gui) == "function" then
+        local ok2, sg = pcall(function()
+            local g = Instance.new("ScreenGui"); syn.protect_gui(g); g.Parent = CoreGui; return g.Parent
+        end)
+        if ok2 then return CoreGui end
+    end
+    -- Try direct CoreGui
+    local cok = pcall(function()
+        local g = Instance.new("ScreenGui"); g.Parent = CoreGui; g:Destroy()
+    end)
+    if cok then return CoreGui end
+    -- Fallback PlayerGui
+    return LocalPlayer:WaitForChild("PlayerGui")
 end
 
 local Root = GetRoot()
@@ -88,7 +96,7 @@ local HttpService = game:GetService("HttpService")
 local Notify, GetHRP
 local State = {
 Features = { Apply = false, Aimbot = false, ESP = false, Bypass = false, TeamCheck = false, WallCheck = false },
-ESP = { Skeleton = false, Box = false, Count = false, Line = false, Name = false, Health = false, MaxDist = 2000 },
+ESP = { Skeleton = false, Box = false, Count = false, Line = false, Name = false, Health = false, MaxDist = 800 },
 Aimbot = { FOV = 120, Lock = false, Smooth = 100, Head = true, ShowFOV = true },
 Memory = {
 FlyHeight = 5, FlySpeed = 50, TeleSkyHeight = 100,
@@ -153,11 +161,11 @@ function HS.SaveSettings()
             if type(isfolder) == "function" and type(makefolder) == "function" then
                 local folderExists = false
                 pcall(function() folderExists = isfolder(HS.SettingsFolder) end)
-                if not folderExists then makefolder(HS.SettingsFolder) end
+                if not folderExists then pcall(function() makefolder(HS.SettingsFolder) end) end
             end
-            writefile(HS.SettingsFile, encoded)
+            pcall(function() writefile(HS.SettingsFile, encoded) end)
             if type(readfile) == "function" then
-                local verify = readfile(HS.SettingsFile)
+                local verify = pcall(function() readfile(HS.SettingsFile) end)
                 assert(type(verify) == "string" and #verify > 0, "verify failed")
                 assert(HttpService:JSONDecode(verify), "invalid saved JSON")
             end
@@ -173,9 +181,9 @@ end
 function HS.LoadSettings()
     local encoded = nil
     if type(isfile) == "function" and type(readfile) == "function" then
-        local exists, yes = pcall(function() return isfile(HS.SettingsFile) end)
+        local exists, yes = pcall(function() return (pcall(function() return isfile(HS.SettingsFile) end)) end)
         if exists and yes then
-            local ok, data = pcall(function() return readfile(HS.SettingsFile) end)
+            local ok, data = pcall(function() return pcall(function() readfile(HS.SettingsFile) end) end)
             if ok then encoded = data end
         end
     end
@@ -1037,7 +1045,7 @@ CreateToggle(HS.TabESP, "ESP Count", false, function(s) State.ESP.Count = s end)
 CreateToggle(HS.TabESP, "ESP Line", false, function(s) State.ESP.Line = s end)
 CreateToggle(HS.TabESP, "ESP Name", false, function(s) State.ESP.Name = s end)
 CreateToggle(HS.TabESP, "ESP Health", false, function(s) State.ESP.Health = s end)
-CreateSlider(HS.TabESP, "Khoảng cách tối đa", 50, 5000, 2000, function(v) State.ESP.MaxDist = v end)
+CreateSlider(HS.TabESP, "Khoảng cách tối đa", 50, 2000, 800, function(v) State.ESP.MaxDist = v end)
 
 HS.R15 = {
 { "Head", "UpperTorso" }, { "UpperTorso", "LowerTorso" },
@@ -1295,8 +1303,8 @@ local rgt = move:Dot(flatRight)
 local dir = cam.LookVector * fwd + cam.RightVector * rgt
 
 local vert = 0
-if State.Memory.Up or UserInputService:IsKeyDown(Enum.KeyCode.Space) then vert = vert + 1 end
-if State.Memory.Down or UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vert = vert - 1 end
+if State.Memory.Up or (pcall(function() return UserInputService:IsKeyDown(Enum.KeyCode.Space) end) and UserInputService:IsKeyDown(Enum.KeyCode.Space)) then vert = vert + 1 end
+if State.Memory.Down or (pcall(function() return UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) end) and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)) then vert = vert - 1 end
 dir = dir + Vector3.new(0, vert, 0)
 if dir.Magnitude > 1 then dir = dir.Unit end
 
@@ -4423,6 +4431,8 @@ local function CreateCarModel()
     body.CFrame = hrp.CFrame * CFrame.new(0, -2, 0)
     body.CanCollide = false
     body.Anchored = false
+    pcall(function() body.CanQuery = false end)
+    pcall(function() body.CastShadow = false end)
     body.Parent = model
 
     -- Cabin
@@ -4434,6 +4444,8 @@ local function CreateCarModel()
     cabin.CFrame = body.CFrame * CFrame.new(-0.5, 1.5, 0)
     cabin.CanCollide = false
     cabin.Anchored = false
+    pcall(function() cabin.CanQuery = false end)
+    pcall(function() cabin.CastShadow = false end)
     cabin.Parent = model
 
     -- 4 bánh
@@ -4467,6 +4479,11 @@ local function CreateCarModel()
 
     model.PrimaryPart = body
     model.Parent = Workspace
+    -- Mobile: limit part count
+    local partCount = #model:GetDescendants()
+    if partCount > 60 then
+        warn("[HyperSun] Car model too heavy: " .. partCount .. " parts")
+    end
     return model, hum
 end
 
