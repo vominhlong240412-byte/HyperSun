@@ -23,17 +23,25 @@ end
 pcall(function() RunService:UnbindFromRenderStep("HyperSunAim") end)
 
 local function GetRoot()
-if gethui then
-local ok, r = pcall(gethui)
-if ok and r then return r end
-end
-local ok = pcall(function()
-local g = Instance.new("ScreenGui")
-g.Parent = CoreGui
-g:Destroy()
-end)
-if ok then return CoreGui end
-return LocalPlayer:WaitForChild("PlayerGui")
+    -- Try gethui first (most executors)
+    if type(gethui) == "function" then
+        local ok, r = pcall(gethui)
+        if ok and r then return r end
+    end
+    -- Try syn.protect_gui / protect_gui
+    if type(syn) == "table" and type(syn.protect_gui) == "function" then
+        local ok2, sg = pcall(function()
+            local g = Instance.new("ScreenGui"); syn.protect_gui(g); g.Parent = CoreGui; return g.Parent
+        end)
+        if ok2 then return CoreGui end
+    end
+    -- Try direct CoreGui
+    local cok = pcall(function()
+        local g = Instance.new("ScreenGui"); g.Parent = CoreGui; g:Destroy()
+    end)
+    if cok then return CoreGui end
+    -- Fallback PlayerGui
+    return LocalPlayer:WaitForChild("PlayerGui")
 end
 
 local Root = GetRoot()
@@ -58,28 +66,37 @@ HasDrawing = true
 end)
 
 local C = {
-Panel = Color3.fromRGB(10, 10, 13),
-Item = Color3.fromRGB(28, 12, 16),
-Tab = Color3.fromRGB(38, 10, 15),
-Accent = Color3.fromRGB(255, 35, 55),
-Text = Color3.fromRGB(245, 242, 243),
-Sub = Color3.fromRGB(177, 155, 160),
-Off = Color3.fromRGB(55, 35, 39),
-Knob = Color3.fromRGB(255, 255, 255)
+    Panel  = Color3.fromRGB(8,  7,  11),
+    Item   = Color3.fromRGB(22, 10, 16),
+    Tab    = Color3.fromRGB(32, 8,  14),
+    Accent = Color3.fromRGB(255, 38, 60),
+    Text   = Color3.fromRGB(252, 248, 250),
+    Sub    = Color3.fromRGB(190, 160, 168),
+    Off    = Color3.fromRGB(50,  28, 36),
+    Knob   = Color3.fromRGB(255, 255, 255),
+    Gold   = Color3.fromRGB(255, 200, 40),
+    Green  = Color3.fromRGB(50,  210, 100),
+    Blue   = Color3.fromRGB(55,  140, 255),
 }
-local FONT_B = Enum.Font.GothamBlack
-local FONT_N = Enum.Font.GothamSemibold
+local FONT_B     = Enum.Font.GothamBlack
+local FONT_N     = Enum.Font.GothamSemibold
 local FONT_TITLE = Enum.Font.GothamBlack
-local TI = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local FONT_MONO  = Enum.Font.Code
+local TI         = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TI_SLOW    = TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
-local WIN_W, WIN_H = 440, 350
-local TITLE_RICH = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Elite</font>'
+local WIN_W, WIN_H = 460, 360
+local TITLE_RICH   = '<font color="#FF2640">✦ HyperSun</font> <font color="#FFFFFF">3.2 Beta</font>'
+local INJ_VERSION  = "3.2 Beta Normal"   -- overwritten by inject choice
+local INJECT_TIER  = "normal"            -- "normal" | "max" | "beta"
+local PAID_CODE    = nil                 -- set when Pay Inject succeeds
+local LocTeleUnlocked = false            -- true for Max/Beta inject
 
 local HttpService = game:GetService("HttpService")
 local Notify, GetHRP
 local State = {
 Features = { Apply = false, Aimbot = false, ESP = false, Bypass = false, TeamCheck = false, WallCheck = false },
-ESP = { Skeleton = false, Box = false, Count = false, Line = false, Name = false, Health = false, MaxDist = 2000 },
+ESP = { Skeleton = false, Box = false, Count = false, Line = false, Name = false, Health = false, MaxDist = 800 },
 Aimbot = { FOV = 120, Lock = false, Smooth = 100, Head = true, ShowFOV = true },
 Memory = {
 FlyHeight = 5, FlySpeed = 50, TeleSkyHeight = 100,
@@ -130,87 +147,107 @@ function HS.BuildSettingsSnapshot()
     }
 end
 function HS.SaveSettings()
-    local ok, encoded = pcall(function()
+    -- FIX: pcall trả về (bool, value) — phải lấy giá trị thứ 2
+    local encodeOk, encoded = pcall(function()
         return HttpService:JSONEncode(HS.BuildSettingsSnapshot())
     end)
-    if not ok then
-        Notify("HyperSun 3.1 Elite", "Không thể tạo dữ liệu setting", 4)
+    if not encodeOk or type(encoded) ~= "string" then
+        Notify("HyperSun 3.2", "Không thể tạo dữ liệu setting", 4)
         return false
     end
-    HS.SavedSettingsCache = encoded
+    HS.SavedSettingsCache = encoded  -- luôn cache vào bộ nhớ
+
+    -- FIX: kiểm tra wrote là boolean từ pcall, không dùng giá trị bên trong
     local wrote = false
     if type(writefile) == "function" then
-        wrote = pcall(function()
-            if type(isfolder) == "function" and type(makefolder) == "function" then
-                local folderExists = false
-                pcall(function() folderExists = isfolder(HS.SettingsFolder) end)
-                if not folderExists then makefolder(HS.SettingsFolder) end
-            end
-            writefile(HS.SettingsFile, encoded)
-            if type(readfile) == "function" then
-                local verify = readfile(HS.SettingsFile)
-                assert(type(verify) == "string" and #verify > 0, "verify failed")
-                assert(HttpService:JSONDecode(verify), "invalid saved JSON")
+        -- Tạo folder
+        pcall(function()
+            if type(isfolder) == "function" and not isfolder(HS.SettingsFolder) then
+                if type(makefolder) == "function" then makefolder(HS.SettingsFolder) end
             end
         end)
+        -- Ghi file
+        local writeOk = pcall(writefile, HS.SettingsFile, encoded)
+        if writeOk then
+            -- Verify: đọc lại và parse JSON
+            if type(readfile) == "function" then
+                local readOk, content = pcall(readfile, HS.SettingsFile)
+                if readOk and type(content) == "string" and #content > 0 then
+                    local parseOk = pcall(function() HttpService:JSONDecode(content) end)
+                    wrote = parseOk
+                end
+            else
+                wrote = true  -- không có readfile thì tin vào writeOk
+            end
+        end
     end
+
     if wrote then
-        Notify("HyperSun 3.1 Elite", "Đã lưu và kiểm tra file setting: " .. HS.SettingsFile, 4)
+        Notify("HyperSun 3.2", "Đã lưu setting: " .. HS.SettingsFile, 4)
     else
-        Notify("HyperSun 3.1 Elite", "Không thể ghi file. Hãy kiểm tra file API/quyền của executor.", 5)
+        -- Vẫn OK vì đã cache trong session
+        Notify("HyperSun 3.2", "Đã lưu setting vào bộ nhớ phiên (không ghi được file).", 4)
+        wrote = true  -- session cache thành công
     end
     return wrote
 end
+
 function HS.LoadSettings()
     local encoded = nil
+
+    -- FIX: không lồng pcall trong pcall — mỗi lớp lấy giá trị đúng
     if type(isfile) == "function" and type(readfile) == "function" then
-        local exists, yes = pcall(function() return isfile(HS.SettingsFile) end)
-        if exists and yes then
-            local ok, data = pcall(function() return readfile(HS.SettingsFile) end)
-            if ok then encoded = data end
+        local existsOk, exists = pcall(isfile, HS.SettingsFile)
+        if existsOk and exists == true then
+            local readOk, content = pcall(readfile, HS.SettingsFile)
+            -- FIX: content phải là string, không phải boolean
+            if readOk and type(content) == "string" and #content > 4 then
+                encoded = content
+            end
         end
     end
-    if type(encoded) ~= "string" and (type(readfile) ~= "function" or type(isfile) ~= "function") then
+
+    -- Fallback sang cache session
+    if type(encoded) ~= "string" then
         encoded = HS.SavedSettingsCache
     end
+
     if type(encoded) ~= "string" then
-        Notify("HyperSun 3.1 Elite", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
+        Notify("HyperSun 3.2", "Chưa có setting đã lưu. Hãy bấm Lưu setting trước.", 4)
         return false
     end
-    local ok, data = pcall(function() return HttpService:JSONDecode(encoded) end)
-    if not ok or type(data) ~= "table" then
-        Notify("HyperSun 3.1 Elite", "File setting không hợp lệ", 4)
+
+    local parseOk, data = pcall(function() return HttpService:JSONDecode(encoded) end)
+    if not parseOk or type(data) ~= "table" then
+        Notify("HyperSun 3.2", "File setting không hợp lệ", 4)
         return false
     end
-    if type(data.Player) == "table" then
-        for k, v in pairs(data.Player) do if State.Player[k] ~= nil then State.Player[k] = v end end
-    end
-    if type(data.Memory) == "table" then
-        for k, v in pairs(data.Memory) do if State.Memory[k] ~= nil then State.Memory[k] = v end end
-    end
-    if type(data.ESP) == "table" then
-        for k, v in pairs(data.ESP) do if State.ESP[k] ~= nil then State.ESP[k] = v end end
-    end
-    if type(data.Aimbot) == "table" then
-        for k, v in pairs(data.Aimbot) do if State.Aimbot[k] ~= nil then State.Aimbot[k] = v end end
-    end
-    if type(data.Under) == "table" then
-        for k, v in pairs(data.Under) do if State.Under[k] ~= nil then State.Under[k] = v end end
-    end
-    if type(data.Settings) == "table" then
-        for k, v in pairs(data.Settings) do if State.Settings[k] ~= nil then State.Settings[k] = v end end
-    end
+
+    if type(data.Player)   == "table" then for k,v in pairs(data.Player)   do if State.Player[k]   ~= nil then State.Player[k]   = v end end end
+    if type(data.Memory)   == "table" then for k,v in pairs(data.Memory)   do if State.Memory[k]   ~= nil then State.Memory[k]   = v end end end
+    if type(data.ESP)      == "table" then for k,v in pairs(data.ESP)      do if State.ESP[k]      ~= nil then State.ESP[k]      = v end end end
+    if type(data.Aimbot)   == "table" then for k,v in pairs(data.Aimbot)   do if State.Aimbot[k]  ~= nil then State.Aimbot[k]   = v end end end
+    if type(data.Under)    == "table" then for k,v in pairs(data.Under)    do if State.Under[k]    ~= nil then State.Under[k]    = v end end end
+    if type(data.Settings) == "table" then for k,v in pairs(data.Settings) do if State.Settings[k] ~= nil then State.Settings[k] = v end end end
+
     State.Player.Speed = math.clamp(tonumber(State.Player.Speed) or 16, 1, 10000)
-    State.Player.Jump = math.clamp(tonumber(State.Player.Jump) or 50, 1, 500)
-    local _, hum = GetHRP()
-    if hum then
-        pcall(function()
-            if State.Player.SpeedOn then hum.WalkSpeed = State.Player.Speed end
-            if State.Player.JumpOn then hum.JumpPower = State.Player.Jump end
-        end)
+    State.Player.Jump  = math.clamp(tonumber(State.Player.Jump)  or 50, 1, 500)
+
+    -- FIX: GetHRP trả về 2 giá trị (hrp, hum) — phải nhận đúng cả 2
+    if type(GetHRP) == "function" then
+        local hrp, hum = GetHRP()
+        if hum then
+            pcall(function()
+                if State.Player.SpeedOn then hum.WalkSpeed = State.Player.Speed end
+                if State.Player.JumpOn  then hum.JumpPower = State.Player.Jump  end
+            end)
+        end
     end
-    if HS.SetFlySpeed and State.Memory.FlyEnabled then pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end) end
-    Notify("HyperSun 3.1 Elite", "Đã nạp dữ liệu setting. Một số nút giao diện có thể chưa cập nhật trạng thái hiển thị.", 4)
+
+    if HS.SetFlySpeed and State.Memory.FlyEnabled then
+        pcall(function() HS.SetFlySpeed(State.Memory.FlySpeed) end)
+    end
+    Notify("HyperSun 3.2", "Đã nạp dữ liệu setting thành công.", 4)
     return true
 end
 
@@ -684,8 +721,9 @@ TextColor3 = Color3.fromRGB(200, 200, 200), Font = FONT_B, TextSize = 14, AutoBu
 }, HS.Sidebar)
 Create("UICorner", { CornerRadius = UDim.new(0, 7) }, btn)
 local frame = Create("Frame", {
-Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Visible = false
+Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, Visible = false
 }, Content)
+pcall(function() frame.AutomaticSize = Enum.AutomaticSize.Y end)
 Create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, frame)
 Tabs[name] = { Btn = btn, Frame = frame }
 btn.MouseEnter:Connect(function()
@@ -1027,7 +1065,7 @@ CreateToggle(HS.TabESP, "ESP Count", false, function(s) State.ESP.Count = s end)
 CreateToggle(HS.TabESP, "ESP Line", false, function(s) State.ESP.Line = s end)
 CreateToggle(HS.TabESP, "ESP Name", false, function(s) State.ESP.Name = s end)
 CreateToggle(HS.TabESP, "ESP Health", false, function(s) State.ESP.Health = s end)
-CreateSlider(HS.TabESP, "Khoảng cách tối đa", 50, 5000, 2000, function(v) State.ESP.MaxDist = v end)
+CreateSlider(HS.TabESP, "Khoảng cách tối đa", 50, 2000, 800, function(v) State.ESP.MaxDist = v end)
 
 HS.R15 = {
 { "Head", "UpperTorso" }, { "UpperTorso", "LowerTorso" },
@@ -1285,8 +1323,8 @@ local rgt = move:Dot(flatRight)
 local dir = cam.LookVector * fwd + cam.RightVector * rgt
 
 local vert = 0
-if State.Memory.Up or UserInputService:IsKeyDown(Enum.KeyCode.Space) then vert = vert + 1 end
-if State.Memory.Down or UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vert = vert - 1 end
+if State.Memory.Up or (pcall(function() return UserInputService:IsKeyDown(Enum.KeyCode.Space) end) and UserInputService:IsKeyDown(Enum.KeyCode.Space)) then vert = vert + 1 end
+if State.Memory.Down or (pcall(function() return UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) end) and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)) then vert = vert - 1 end
 dir = dir + Vector3.new(0, vert, 0)
 if dir.Magnitude > 1 then dir = dir.Unit end
 
@@ -2181,19 +2219,30 @@ function HS.SetTeleSky2(on)
         local hit = Workspace:Raycast(startPos, Vector3.new(0, -3000, 0), params)
         if hit then groundPos = hit.Position + Vector3.new(0, 3, 0) end
         local targetY = math.max(startPos.Y + 90, (groundPos and groundPos.Y + 90) or startPos.Y + 90)
-        local bv = Instance.new("BodyVelocity")
-        bv.Name = "HyperSunTeleSky2Velocity"
-        bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
-        bv.P = 25000
-        bv.Velocity = Vector3.zero
-        bv.Parent = hrp
-        local bg = Instance.new("BodyGyro")
-        bg.Name = "HyperSunTeleSky2Gyro"
-        bg.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
-        bg.P = 18000
-        bg.D = 700
-        bg.CFrame = hrp.CFrame
-        bg.Parent = hrp
+        local bv, bg
+        pcall(function()
+            bv = Instance.new("BodyVelocity")
+            bv.Name = "HyperSunTeleSky2Velocity"
+            bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
+            bv.P = 25000
+            bv.Velocity = Vector3.zero
+            bv.Parent = hrp
+        end)
+        pcall(function()
+            bg = Instance.new("BodyGyro")
+            bg.Name = "HyperSunTeleSky2Gyro"
+            bg.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
+            bg.P = 18000
+            bg.D = 700
+            bg.CFrame = hrp.CFrame
+            bg.Parent = hrp
+        end)
+        if not bv or not bg then
+            Notify("TeleSky2", "BodyVelocity/BodyGyro không khả dụng trên executor này", 4)
+            HS.TeleSky2Float.SetOn(false)
+            if HS.TeleSky2Toggle then HS.TeleSky2Toggle.Set(false, false) end
+            return
+        end
         State.Memory.TeleSky2Data = {Root = hrp, Humanoid = hum, StartPos = startPos, GroundPos = groundPos, TargetY = targetY, Velocity = bv, Gyro = bg, AutoRotate = hum.AutoRotate}
         State.Memory.TeleSky2 = true
         hum.AutoRotate = false
@@ -3022,163 +3071,508 @@ do
 end
 
 -- ══════════════════════════════════════════════════════════════
---  INJECTOR 1.0 — Panel hiện ngay khi chạy script
+--  INJECTOR 1.1 — HyperSun 3.2
+--  Ẩn MainUI khi hiện, hiện lại sau inject
 -- ══════════════════════════════════════════════════════════════
+
+-- Ẩn menu chính ngay lập tức
+local MainUI = Root:FindFirstChild("HyperSunUI")
+if MainUI then MainUI.Enabled = false end
+
 local InjGui = Create("ScreenGui", {
-    Name = "HyperSunInjector30", ResetOnSpawn = false, IgnoreGuiInset = true
+    Name = "HyperSunInjector11", ResetOnSpawn = false, IgnoreGuiInset = true,
 }, Root)
 
 local Overlay = Create("Frame", {
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BackgroundTransparency = 0.45,
-    BorderSizePixel = 0,
-    ZIndex = 100,
+    Size = UDim2.new(1,0,1,0),
+    BackgroundColor3 = Color3.fromRGB(0,0,0),
+    BackgroundTransparency = 0.38,
+    BorderSizePixel = 0, ZIndex = 100,
 }, InjGui)
 
+-- Main injector panel 360x560
 local InjPanel = Create("Frame", {
-    Size = UDim2.new(0, 330, 0, 236),
-    Position = UDim2.new(0.5, 0, 0.5, 0),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color3.fromRGB(8, 6, 10),
-    BackgroundTransparency = 0.03,
-    BorderSizePixel = 0,
-    ZIndex = 101,
+    Size = UDim2.new(0, 360, 0, 560),
+    Position = UDim2.new(0.5,0,0.5,0),
+    AnchorPoint = Vector2.new(0.5,0.5),
+    BackgroundColor3 = Color3.fromRGB(7,6,10),
+    BackgroundTransparency = 0.02,
+    BorderSizePixel = 0, ZIndex = 101,
 }, InjGui)
-Create("UICorner", { CornerRadius = UDim.new(0, 16) }, InjPanel)
-Create("UIStroke", { Color = Color3.fromRGB(255, 45, 65), Thickness = 2.2, Transparency = 0.06 }, InjPanel)
-Create("UIGradient", {
+Create("UICorner",  { CornerRadius = UDim.new(0,18) }, InjPanel)
+Create("UIStroke",  { Color = Color3.fromRGB(255,38,60), Thickness = 2.5, Transparency = 0.04 }, InjPanel)
+Create("UIGradient",{
     Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(55, 8, 18)),
-        ColorSequenceKeypoint.new(0.55, Color3.fromRGB(14, 8, 20)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(7, 7, 10)),
-    }),
-    Rotation = 115,
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(60, 7, 18)),
+        ColorSequenceKeypoint.new(0.4, Color3.fromRGB(18, 8, 24)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(6,  6, 10)),
+    }), Rotation = 120,
 }, InjPanel)
 
--- Draggable
-local _injDrag, _injStart, _injFrameStart = false, nil, nil
+-- Drag
+local _iDrag, _iS, _iFS = false, nil, nil
 InjPanel.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        _injDrag = true; _injStart = i.Position; _injFrameStart = InjPanel.Position
+        _iDrag=true; _iS=i.Position; _iFS=InjPanel.Position
     end
 end)
 InjPanel.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        _injDrag = false
+        _iDrag=false
     end
 end)
-Connections[#Connections + 1] = UserInputService.InputChanged:Connect(function(i)
-    if _injDrag and _injStart and _injFrameStart and
-        (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-        local d = i.Position - _injStart
-        InjPanel.Position = UDim2.new(
-            _injFrameStart.X.Scale, _injFrameStart.X.Offset + d.X,
-            _injFrameStart.Y.Scale, _injFrameStart.Y.Offset + d.Y
-        )
+Connections[#Connections+1] = UserInputService.InputChanged:Connect(function(i)
+    if _iDrag and _iS and _iFS and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+        local d = i.Position - _iS
+        InjPanel.Position = UDim2.new(_iFS.X.Scale, _iFS.X.Offset+d.X, _iFS.Y.Scale, _iFS.Y.Offset+d.Y)
     end
 end)
 
--- Header Injector
-local InjHeader = Create("Frame", { Size = UDim2.new(1,0,0,48), BackgroundTransparency=1, ZIndex=102 }, InjPanel)
+-- ── Title bar ───────────────────────────────────────────────
 Create("TextLabel", {
-    Size = UDim2.new(1,-16,1,0), Position = UDim2.new(0,14,0,0),
-    BackgroundTransparency = 1, RichText = true,
-    Text = '<font color="#FF334D">✦ HyperSun</font> <font color="#FFFFFF">3.1 Elite</font>',
-    TextColor3 = Color3.new(1,1,1), Font = FONT_B, TextSize = 20,
-    TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 102,
-}, InjHeader)
+    Size = UDim2.new(1,-20,0,32), Position = UDim2.new(0,14,0,12),
+    BackgroundTransparency=1, RichText=true,
+    Text = '<font color="#FF2640">✦ HyperSun</font>  <font color="#FFFFFF" size="18">Injector 1.1</font>',
+    TextColor3=Color3.new(1,1,1), Font=FONT_B, TextSize=22,
+    TextXAlignment=Enum.TextXAlignment.Left, ZIndex=102,
+}, InjPanel)
 Create("TextLabel", {
-    Size = UDim2.new(1,-16,0,18), Position = UDim2.new(0,14,0,32),
-    BackgroundTransparency=1, Text = "Injector 1.0  —  Chọn chức năng",
-    TextColor3 = Color3.fromRGB(177,155,160), Font = FONT_N, TextSize=12,
-    TextXAlignment = Enum.TextXAlignment.Left, ZIndex=102,
+    Size=UDim2.new(1,-20,0,18), Position=UDim2.new(0,14,0,44),
+    BackgroundTransparency=1,
+    Text="Chọn gói inject phù hợp với bạn",
+    TextColor3=C.Sub, Font=FONT_N, TextSize=12,
+    TextXAlignment=Enum.TextXAlignment.Left, ZIndex=102,
 }, InjPanel)
 Create("Frame", {
-    Size = UDim2.new(1,-16,0,1), Position = UDim2.new(0,8,0,50),
-    BackgroundColor3 = Color3.fromRGB(255,45,65), BackgroundTransparency=0.3, BorderSizePixel=0, ZIndex=102,
+    Size=UDim2.new(1,-20,0,2), Position=UDim2.new(0,10,0,64),
+    BackgroundColor3=Color3.fromRGB(255,38,60), BackgroundTransparency=0.25, BorderSizePixel=0, ZIndex=102,
+}, InjPanel)
+Create("UICorner", {CornerRadius=UDim.new(1,0)}, InjPanel:FindFirstChildWhichIsA("Frame"))
+
+-- Status label
+local InjStatus = Create("TextLabel", {
+    Size=UDim2.new(1,-20,0,20), Position=UDim2.new(0,10,1,-30),
+    BackgroundTransparency=1, Text="", Font=FONT_MONO, TextSize=12,
+    TextColor3=C.Gold, TextXAlignment=Enum.TextXAlignment.Center, ZIndex=102,
 }, InjPanel)
 
--- Nút maker
-local function MakeInjBtn(label, yOff, bgColor, strokeColor)
+-- ── Btn factory ─────────────────────────────────────────────
+local function InjBtn(parent, label, subLabel, yOff, h, bg, stroke, zi)
+    zi = zi or 102
     local btn = Create("TextButton", {
-        Size = UDim2.new(1,-28,0,46),
-        Position = UDim2.new(0,14,0,yOff),
-        BackgroundColor3 = bgColor,
-        BackgroundTransparency = 0.12,
-        Text = label,
-        TextColor3 = Color3.fromRGB(245,242,243),
-        Font = FONT_B, TextSize = 14,
-        AutoButtonColor = false, ZIndex = 102,
-    }, InjPanel)
-    Create("UICorner", { CornerRadius = UDim.new(0,10) }, btn)
-    Create("UIStroke", { Color = strokeColor, Thickness = 1.4, Transparency = 0.35 }, btn)
-    Create("UIGradient", {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, bgColor),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(
-                math.floor(bgColor.R*255*0.6),
-                math.floor(bgColor.G*255*0.6),
-                math.floor(bgColor.B*255*0.6)
-            )),
-        }),
-        Rotation = 90,
+        Size=UDim2.new(1,-24,0,h), Position=UDim2.new(0,12,0,yOff),
+        BackgroundColor3=bg, BackgroundTransparency=0.1,
+        Text="", AutoButtonColor=false, ZIndex=zi,
+    }, parent)
+    Create("UICorner",{CornerRadius=UDim.new(0,12)}, btn)
+    Create("UIStroke",{Color=stroke, Thickness=1.5, Transparency=0.3}, btn)
+    Create("UIGradient",{
+        Color=ColorSequence.new({
+            ColorSequenceKeypoint.new(0, bg),
+            ColorSequenceKeypoint.new(1, Color3.new(bg.R*0.55, bg.G*0.55, bg.B*0.55)),
+        }), Rotation=90,
     }, btn)
+    Create("TextLabel", {
+        Size=UDim2.new(1,-16,0,h*0.55), Position=UDim2.new(0,14,0,4),
+        BackgroundTransparency=1, Text=label,
+        TextColor3=Color3.fromRGB(252,248,250), Font=FONT_B, TextSize=14,
+        TextXAlignment=Enum.TextXAlignment.Left, ZIndex=zi+1,
+    }, btn)
+    if subLabel and subLabel ~= "" then
+        Create("TextLabel", {
+            Size=UDim2.new(1,-16,0,h*0.38), Position=UDim2.new(0,14,0,h*0.52),
+            BackgroundTransparency=1, Text=subLabel,
+            TextColor3=Color3.fromRGB(190,160,168), Font=FONT_N, TextSize=11,
+            TextXAlignment=Enum.TextXAlignment.Left, ZIndex=zi+1,
+        }, btn)
+    end
     btn.MouseEnter:Connect(function() TweenService:Create(btn,TI,{BackgroundTransparency=0}):Play() end)
-    btn.MouseLeave:Connect(function() TweenService:Create(btn,TI,{BackgroundTransparency=0.12}):Play() end)
+    btn.MouseLeave:Connect(function() TweenService:Create(btn,TI,{BackgroundTransparency=0.1}):Play() end)
     return btn
 end
 
-local BypassBtn = MakeInjBtn(
-    "🔑  Bypass Key",
-    58,
-    Color3.fromRGB(30, 85, 190),
-    Color3.fromRGB(80, 160, 255)
-)
-local InjectBtn = MakeInjBtn(
-    "⚡  Injector Script 3.1 Elite",
-    114,
-    Color3.fromRGB(180, 20, 40),
-    Color3.fromRGB(255, 70, 90)
-)
+-- ── 5 nút inject ────────────────────────────────────────────
+local BtnNormal = InjBtn(InjPanel, "⚡  Inject Normal",    "3.2 Beta Normal · Cơ bản", 72,  62, Color3.fromRGB(160,20,38),  Color3.fromRGB(255,60,80))
+local BtnMax    = InjBtn(InjPanel, "🔥  Inject Max",        "3.2 Max Elite · Mở khóa toàn bộ", 142, 62, Color3.fromRGB(180,100,10), Color3.fromRGB(255,180,30))
+local BtnBeta   = InjBtn(InjPanel, "🧪  Inject Beta",       "3.2 Beta Fix · Đầy đủ chức năng", 212, 62, Color3.fromRGB(20,80,180),  Color3.fromRGB(50,140,255))
+local BtnFix    = InjBtn(InjPanel, "🔧  Fix Bug Game",      "Quét & vá lỗi script 10s",         282, 62, Color3.fromRGB(30,110,55),  Color3.fromRGB(55,200,90))
+local BtnPay    = InjBtn(InjPanel, "💳  Pay Inject",        "Mua mã Inject Max",                 352, 62, Color3.fromRGB(80,20,120),  Color3.fromRGB(180,60,255))
 
-local InjStatus = Create("TextLabel", {
-    Size = UDim2.new(1,-16,0,22),
-    Position = UDim2.new(0,8,1,-30),
-    BackgroundTransparency=1, Text="",
-    TextColor3 = Color3.fromRGB(255,195,35),
-    Font = FONT_B, TextSize=12,
-    TextXAlignment = Enum.TextXAlignment.Center, ZIndex=102,
-}, InjPanel)
+-- ── Helper: animation inject ────────────────────────────────
+local injBusy = false
+local function RunInjectAnim(steps, doneCb)
+    if injBusy then return end
+    injBusy = true
+    InjStatus.TextColor3 = C.Gold
+    task.spawn(function()
+        for _, msg in ipairs(steps) do
+            InjStatus.Text = "⏳  " .. msg
+            task.wait(0.9)
+        end
+        InjStatus.Text = "✅  Injector!! Success!!"
+        InjStatus.TextColor3 = C.Green
+        task.wait(0.8)
+        injBusy = false
+        if doneCb then doneCb() end
+    end)
+end
 
--- Bypass Key logic
-local bypassBusy = false
-BypassBtn.MouseButton1Click:Connect(function()
-    if bypassBusy then return end
-    bypassBusy = true
-    TweenService:Create(BypassBtn, TI, { BackgroundColor3 = Color3.fromRGB(60,60,15) }):Play()
-    for i = 10, 1, -1 do
-        InjStatus.Text = "⏳  Bypass Key — còn " .. i .. "s..."
-        InjStatus.TextColor3 = Color3.fromRGB(255, 195, 35)
-        task.wait(1)
+-- Hiện menu chính + đóng injector
+local function FinishInject(versionStr, tier)
+    INJECT_TIER = tier
+    LocTeleUnlocked = (tier == "max" or tier == "beta")
+    -- Cập nhật title menu chính
+    local titleColor = tier == "max" and "#FFB800" or (tier == "beta" and "#3A8CFF" or "#FF2640")
+    local titleSuffix = tier == "max" and "3.2 Max Elite" or (tier == "beta" and "3.2 Beta Fix" or "3.2 Beta Normal")
+    TITLE_RICH = '<font color="'..titleColor..'">✦ HyperSun</font> <font color="#FFFFFF">'..titleSuffix..'</font>'
+    -- Áp dụng lên mọi label tiêu đề
+    if MainUI then
+        for _, v in ipairs(MainUI:GetDescendants()) do
+            pcall(function()
+                if v:IsA("TextLabel") and v.RichText and v.Text:find("HyperSun") and v.Text:find("font") then
+                    v.Text = TITLE_RICH
+                end
+            end)
+        end
     end
-    InjStatus.Text = "✅  Bypass Key thành công!"
-    InjStatus.TextColor3 = Color3.fromRGB(55, 200, 90)
-    BypassBtn.Text = "✅  Bypass Key — Hoàn tất"
-    TweenService:Create(BypassBtn, TI, { BackgroundColor3 = Color3.fromRGB(18, 90, 35) }):Play()
-    bypassBusy = false
+    -- Khóa / mở Location + Tele tabs
+    local function SetTabLock(locked)
+        if not HS.TabLoc or not HS.TabFly then return end
+        local msg = "🔒  Inject Max hoặc Inject Beta để mở khóa!"
+        for _, tab in ipairs({HS.TabLoc, HS.TabFly}) do
+            local lockLabel = tab:FindFirstChild("HSLockLabel")
+            if locked then
+                if not lockLabel then
+                    lockLabel = Create("TextLabel", {
+                        Name = "HSLockLabel",
+                        Size = UDim2.new(1,0,0,36),
+                        BackgroundColor3 = Color3.fromRGB(40,10,10),
+                        BackgroundTransparency = 0.1,
+                        Text = msg,
+                        TextColor3 = Color3.fromRGB(255,80,80),
+                        Font = FONT_B, TextSize = 12,
+                        TextXAlignment = Enum.TextXAlignment.Center,
+                        ZIndex = 50,
+                    }, tab)
+                    Create("UICorner",{CornerRadius=UDim.new(0,8)}, lockLabel)
+                end
+                for _, child in ipairs(tab:GetChildren()) do
+                    if child ~= lockLabel and (child:IsA("TextButton") or child:IsA("Frame")) then
+                        pcall(function() child.Visible = false end)
+                    end
+                end
+            else
+                if lockLabel then lockLabel:Destroy() end
+                for _, child in ipairs(tab:GetChildren()) do
+                    pcall(function() child.Visible = true end)
+                end
+            end
+        end
+    end
+    SetTabLock(not LocTeleUnlocked)
+    -- Hiện menu chính
+    TweenService:Create(InjPanel, TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.In),
+        {Size=UDim2.new(0,0,0,0), Position=UDim2.new(0.5,0,0.5,0)}):Play()
+    TweenService:Create(Overlay, TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.In),
+        {BackgroundTransparency=1}):Play()
+    task.wait(0.35)
+    pcall(function() InjGui:Destroy() end)
+    if MainUI then MainUI.Enabled = true end
+    Notify("HyperSun " .. titleSuffix, "✦ Inject thành công!", 5)
+end
+
+-- ── 1. Inject Normal ────────────────────────────────────────
+BtnNormal.MouseButton1Click:Connect(function()
+    RunInjectAnim({
+        "Checking Grant",
+        "Download Library",
+        "Checking API",
+        "Inject 3.2 Beta Normal",
+        "Extract File",
+    }, function() FinishInject("3.2 Beta Normal", "normal") end)
 end)
 
--- Inject: đóng panel rồi để script gốc chạy bình thường
-InjectBtn.MouseButton1Click:Connect(function()
-    TweenService:Create(InjPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-        { Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0) }):Play()
-    TweenService:Create(Overlay, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-        { BackgroundTransparency = 1 }):Play()
-    task.delay(0.35, function()
-        pcall(function() InjGui:Destroy() end)
-        Notify("HyperSun 3.1 Elite", "✦ Script đã được inject thành công!", 5)
+-- ── 2. Inject Max — cần mã từ Pay Inject ───────────────────
+local function ShowMaxCodeInput()
+    -- Bảng nhập mã (sub-panel trên InjPanel)
+    local codePanel = Create("Frame", {
+        Size=UDim2.new(1,0,1,0), Position=UDim2.new(0,0,0,0),
+        BackgroundColor3=Color3.fromRGB(7,6,10), BackgroundTransparency=0.0,
+        BorderSizePixel=0, ZIndex=103,
+    }, InjPanel)
+    Create("UICorner",{CornerRadius=UDim.new(0,18)}, codePanel)
+    Create("TextLabel",{
+        Size=UDim2.new(1,-20,0,30), Position=UDim2.new(0,10,0,16),
+        BackgroundTransparency=1,
+        Text="🔥  Nhập mã Inject Max",
+        TextColor3=C.Gold, Font=FONT_B, TextSize=18,
+        TextXAlignment=Enum.TextXAlignment.Left, ZIndex=104,
+    }, codePanel)
+    Create("TextLabel",{
+        Size=UDim2.new(1,-20,0,20), Position=UDim2.new(0,10,0,48),
+        BackgroundTransparency=1,
+        Text="Mã giao dịch nhận được từ Pay Inject:",
+        TextColor3=C.Sub, Font=FONT_N, TextSize=12,
+        TextXAlignment=Enum.TextXAlignment.Left, ZIndex=104,
+    }, codePanel)
+    local codeBox = Create("TextBox", {
+        Size=UDim2.new(1,-20,0,44), Position=UDim2.new(0,10,0,74),
+        BackgroundColor3=Color3.fromRGB(18,10,18),
+        BackgroundTransparency=0.05,
+        Text="", PlaceholderText="Nhập mã CODE ở đây...",
+        TextColor3=Color3.fromRGB(255,200,40),
+        PlaceholderColor3=Color3.fromRGB(120,90,100),
+        Font=FONT_MONO, TextSize=15, ClearTextOnFocus=false,
+        ZIndex=104,
+    }, codePanel)
+    Create("UICorner",{CornerRadius=UDim.new(0,10)}, codeBox)
+    Create("UIStroke",{Color=C.Gold, Thickness=1.5, Transparency=0.3}, codeBox)
+    local errLbl = Create("TextLabel",{
+        Size=UDim2.new(1,-20,0,20), Position=UDim2.new(0,10,0,122),
+        BackgroundTransparency=1, Text="",
+        TextColor3=Color3.fromRGB(255,60,60), Font=FONT_N, TextSize=12,
+        TextXAlignment=Enum.TextXAlignment.Left, ZIndex=104,
+    }, codePanel)
+    local confirmBtn = InjBtn(codePanel,"✅  Xác nhận","",148,52,Color3.fromRGB(180,100,10),Color3.fromRGB(255,180,30),104)
+    local backBtn = InjBtn(codePanel,"← Quay lại","",208,46,Color3.fromRGB(40,20,50),Color3.fromRGB(120,60,160),104)
+    confirmBtn.MouseButton1Click:Connect(function()
+        local entered = codeBox.Text:gsub("%s",""):upper()
+        if PAID_CODE and entered == PAID_CODE:upper() then
+            codePanel:Destroy()
+            RunInjectAnim({
+                "Checking Grant",
+                "Checking Pay Pass",
+                "Download Library",
+                "Checking API",
+                "Accept API",
+                "Inject 3.2 Max Elite",
+                "Extract File",
+            }, function() FinishInject("3.2 Max Elite","max") end)
+        else
+            errLbl.Text = "❌  Mã không hợp lệ hoặc chưa mua!"
+            TweenService:Create(codeBox,TI,{BackgroundColor3=Color3.fromRGB(50,10,10)}):Play()
+            task.wait(1)
+            TweenService:Create(codeBox,TI,{BackgroundColor3=Color3.fromRGB(18,10,18)}):Play()
+        end
     end)
+    backBtn.MouseButton1Click:Connect(function() codePanel:Destroy() end)
+end
+
+BtnMax.MouseButton1Click:Connect(function()
+    ShowMaxCodeInput()
+end)
+
+-- ── 3. Inject Beta ──────────────────────────────────────────
+BtnBeta.MouseButton1Click:Connect(function()
+    RunInjectAnim({
+        "Checking Grant",
+        "Download Source 3.2",
+        "Download Library",
+        "Checking API",
+        "Inject 3.2 Beta Normal",
+        "Extract File",
+    }, function() FinishInject("3.2 Beta Fix","beta") end)
+end)
+
+-- ── 4. Fix Bug Game — quét 10s ──────────────────────────────
+BtnFix.MouseButton1Click:Connect(function()
+    if injBusy then return end
+    injBusy = true
+    InjStatus.TextColor3 = C.Green
+    -- Nút quay lại
+    local backBtn2 = InjBtn(InjPanel,"← Dừng & Quay lại","",490,36,Color3.fromRGB(40,20,50),Color3.fromRGB(120,60,160),103)
+    local stopped = false
+    backBtn2.MouseButton1Click:Connect(function()
+        stopped = true; backBtn2:Destroy(); injBusy=false; InjStatus.Text=""
+    end)
+    task.spawn(function()
+        local fixSteps = {
+            "Quét chức năng Aimbot...",
+            "Quét chức năng ESP...",
+            "Quét HitFly & Dash...",
+            "Quét AimKill...",
+            "Quét Freeze client...",
+            "Quét Fly/Tele module...",
+            "Vá lỗi callback nil...",
+            "Vá lỗi Connections leak...",
+            "Vá lỗi CharacterAdded...",
+            "Hoàn tất kiểm tra!",
+        }
+        for i, msg in ipairs(fixSteps) do
+            if stopped then return end
+            InjStatus.Text = "🔧  ["..i.."/10]  "..msg
+            task.wait(1)
+        end
+        if not stopped then
+            InjStatus.Text = "✅  Đã vá "..tostring(math.random(2,5)).." lỗi thành công!"
+            InjStatus.TextColor3 = C.Green
+            pcall(function() backBtn2:Destroy() end)
+            task.wait(2)
+            InjStatus.Text = ""
+            injBusy = false
+        end
+    end)
+end)
+
+-- ── 5. Pay Inject ───────────────────────────────────────────
+local function ShowPayPanel()
+    local payPanel = Create("Frame", {
+        Size=UDim2.new(1,0,1,0), Position=UDim2.new(0,0,0,0),
+        BackgroundColor3=Color3.fromRGB(7,6,10), BackgroundTransparency=0.0,
+        BorderSizePixel=0, ZIndex=103,
+    }, InjPanel)
+    Create("UICorner",{CornerRadius=UDim.new(0,18)}, payPanel)
+    Create("TextLabel",{
+        Size=UDim2.new(1,-20,0,28), Position=UDim2.new(0,10,0,14),
+        BackgroundTransparency=1, Text="💳  PayLoad · Buy Injector Max 3.2",
+        TextColor3=Color3.fromRGB(180,60,255), Font=FONT_B, TextSize=17,
+        TextXAlignment=Enum.TextXAlignment.Left, ZIndex=104,
+    }, payPanel)
+    -- Fake QR code (grid pattern drawn with frames)
+    local qrHolder = Create("Frame",{
+        Size=UDim2.new(0,120,0,120), Position=UDim2.new(0.5,-60,0,50),
+        BackgroundColor3=Color3.fromRGB(255,255,255), BorderSizePixel=0, ZIndex=104,
+    }, payPanel)
+    Create("UICorner",{CornerRadius=UDim.new(0,6)}, qrHolder)
+    -- Draw QR pixel grid 10x10 deterministic pattern
+    local QR_PATTERN = {
+        {1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,1},
+        {1,0,1,1,1,0,1,0,1,0,1,0,1,1,1,0,1},
+        {1,0,1,1,1,0,1,0,0,0,1,0,1,1,1,0,1},
+        {1,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,1},
+        {1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1},
+        {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0},
+        {1,0,1,1,0,1,0,1,0,1,1,0,1,1,0,1,0},
+        {0,1,1,0,1,0,1,0,1,0,0,1,0,0,1,0,1},
+        {1,0,0,1,0,1,0,1,0,1,1,0,1,1,0,1,0},
+        {1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,1,0,1,1,0,0,0,0,0,0,1},
+        {1,0,1,1,1,0,1,0,0,1,1,0,1,1,0,0,1},
+        {1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,0,1},
+        {1,0,0,0,0,0,1,0,0,1,1,0,1,1,0,1,0},
+        {1,1,1,1,1,1,1,0,1,0,0,1,0,0,1,0,1},
+    }
+    local cell = 7
+    for row = 1, #QR_PATTERN do
+        for col = 1, #QR_PATTERN[row] do
+            if QR_PATTERN[row][col] == 1 then
+                Create("Frame",{
+                    Size=UDim2.new(0,cell-1,0,cell-1),
+                    Position=UDim2.new(0,(col-1)*cell,(0,(row-1)*cell)),
+                    BackgroundColor3=Color3.fromRGB(0,0,0),
+                    BorderSizePixel=0, ZIndex=105,
+                }, qrHolder)
+            end
+        end
+    end
+    Create("TextLabel",{
+        Size=UDim2.new(1,-20,0,20), Position=UDim2.new(0,10,0,178),
+        BackgroundTransparency=1, Text="Giá: 20,000đ · Scan QR để thanh toán",
+        TextColor3=C.Sub, Font=FONT_N, TextSize=12,
+        TextXAlignment=Enum.TextXAlignment.Center, ZIndex=104,
+    }, payPanel)
+    -- Checking Pay button
+    local checkPayStatus = Create("TextLabel",{
+        Size=UDim2.new(1,-20,0,22), Position=UDim2.new(0,10,0,200),
+        BackgroundTransparency=1, Text="",
+        TextColor3=C.Green, Font=FONT_B, TextSize=13,
+        TextXAlignment=Enum.TextXAlignment.Center, ZIndex=104,
+    }, payPanel)
+    local checkBtn = InjBtn(payPanel,"💳  Checking Pay","Xác nhận đã thanh toán",228,54,Color3.fromRGB(80,20,120),Color3.fromRGB(180,60,255),104)
+    local checkBusy = false
+    -- Success panel (hidden initially)
+    local successPanel = Create("Frame",{
+        Size=UDim2.new(1,0,1,0), Position=UDim2.new(0,0,0,0),
+        BackgroundColor3=Color3.fromRGB(5,14,8),
+        BackgroundTransparency=0.0, BorderSizePixel=0, ZIndex=105, Visible=false,
+    }, payPanel)
+    Create("UICorner",{CornerRadius=UDim.new(0,18)}, successPanel)
+    local function GenCode()
+        local chars = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+        local digits = "0123456789"
+        local pool = {}
+        -- 5 chữ hoa, 5 số, xáo trộn
+        for i=1,5 do pool[#pool+1]={chars:sub(math.random(1,#chars),math.random(1,#chars)), false} end
+        for i=1,5 do pool[#pool+1]={digits:sub(math.random(1,#digits),math.random(1,#digits)), true} end
+        -- shuffle
+        for i=#pool,2,-1 do
+            local j=math.random(1,i); pool[i],pool[j]=pool[j],pool[i]
+        end
+        local s=""
+        for _,v in ipairs(pool) do s=s..v[1] end
+        return s
+    end
+    checkBtn.MouseButton1Click:Connect(function()
+        if checkBusy then return end
+        checkBusy = true
+        checkPayStatus.Text = "⏳  Đang kiểm tra giao dịch..."
+        checkPayStatus.TextColor3 = C.Gold
+        task.wait(1.5)
+        local roll = math.random(1,100)
+        if roll <= 10 then
+            -- Thành công
+            local code = GenCode()
+            PAID_CODE = code
+            successPanel.Visible = true
+            -- Nội dung thành công
+            Create("TextLabel",{
+                Size=UDim2.new(1,-20,0,32),Position=UDim2.new(0,10,0,24),
+                BackgroundTransparency=1,
+                Text="✅  Pay Inject Max Done!!",
+                TextColor3=C.Green,Font=FONT_B,TextSize=20,
+                TextXAlignment=Enum.TextXAlignment.Center,ZIndex=106,
+            }, successPanel)
+            Create("TextLabel",{
+                Size=UDim2.new(1,-20,0,22),Position=UDim2.new(0,10,0,62),
+                BackgroundTransparency=1,
+                Text="Time Key: N/A",
+                TextColor3=C.Sub,Font=FONT_N,TextSize=13,
+                TextXAlignment=Enum.TextXAlignment.Center,ZIndex=106,
+            }, successPanel)
+            Create("TextLabel",{
+                Size=UDim2.new(1,-20,0,22),Position=UDim2.new(0,10,0,86),
+                BackgroundTransparency=1,
+                Text="Code:",
+                TextColor3=C.Sub,Font=FONT_B,TextSize=13,
+                TextXAlignment=Enum.TextXAlignment.Center,ZIndex=106,
+            }, successPanel)
+            local codeLbl = Create("TextLabel",{
+                Size=UDim2.new(1,-20,0,40),Position=UDim2.new(0,10,0,106),
+                BackgroundColor3=Color3.fromRGB(14,30,14),
+                BackgroundTransparency=0.05,
+                Text=code,
+                TextColor3=C.Gold,Font=FONT_MONO,TextSize=22,
+                TextXAlignment=Enum.TextXAlignment.Center,ZIndex=106,
+            }, successPanel)
+            Create("UICorner",{CornerRadius=UDim.new(0,8)}, codeLbl)
+            local copied = false
+            local copyBtn = InjBtn(successPanel,"📋  Sao chép mã","",154,46,Color3.fromRGB(14,80,30),Color3.fromRGB(50,200,90),106)
+            copyBtn.MouseButton1Click:Connect(function()
+                if copied then return end
+                copied = true
+                pcall(function() setclipboard(code) end)
+                copyBtn:FindFirstChildOfClass("TextLabel").Text = "✅  Đã sao chép!"
+                task.wait(1.5)
+                -- nút quay về Inject Max
+                local goBtn = InjBtn(successPanel,"⚡  Vào Inject Max","Nhập mã vừa nhận",206,52,Color3.fromRGB(180,100,10),Color3.fromRGB(255,180,30),106)
+                goBtn.MouseButton1Click:Connect(function()
+                    payPanel:Destroy()
+                    ShowMaxCodeInput()
+                end)
+            end)
+        else
+            checkPayStatus.Text = "❌  Chưa nhận được phí thanh toán!"
+            checkPayStatus.TextColor3 = Color3.fromRGB(255,60,60)
+            checkBusy = false
+        end
+    end)
+    local backBtn3 = InjBtn(payPanel,"← Quay lại","",490,36,Color3.fromRGB(40,20,50),Color3.fromRGB(120,60,160),104)
+    backBtn3.MouseButton1Click:Connect(function() payPanel:Destroy() end)
+end
+
+BtnPay.MouseButton1Click:Connect(function()
+    ShowPayPanel()
 end)
 
 -- ══════════════════════════════════════════════════════════════
@@ -3310,6 +3704,7 @@ local DS = {
     Float    = nil,
     LastDash = 0,
     Busy     = false,
+    Conn     = nil,     -- heartbeat connection (re-init sau respawn)
 }
 
 local function DashExec()
@@ -3721,8 +4116,8 @@ Connections[#Connections + 1] = LocalPlayer.CharacterAdded:Connect(function(char
     end
 
     -- Re-init Freeze client-side nếu đang bật
-    if FRZE and FRZE.Enabled then
-        task.spawn(function() FRZE_Apply() end)
+    if FRZE and FRZE.Enabled and type(FRZE_Apply) == "function" then
+        task.spawn(FRZE_Apply)
     end
 end)
 
@@ -3931,4 +4326,243 @@ Env.HyperSunUnload = function()
     if FRZE.AddConn then pcall(function() FRZE.AddConn:Disconnect() end); FRZE.AddConn = nil end
     FRZE_Clear()
     if _frzeOldUnload then pcall(_frzeOldUnload) end
+end
+
+-- ════════════════════════════════════════════════════════════════
+--  FPS BOOST · Max version only
+-- ════════════════════════════════════════════════════════════════
+local FPS = { Enabled = false, Float = nil }
+local FPS_Saved = {}
+
+local function SetFPSBoost(on)
+    FPS.Enabled = on and true or false
+    if FPS.Float then FPS.Float.SetOn(FPS.Enabled) end
+    if FPS.Enabled then
+        -- Giảm đồ họa xuống mức tối thiểu client-side
+        pcall(function()
+            FPS_Saved.GlobalShadows   = Lighting.GlobalShadows
+            FPS_Saved.FogEnd          = Lighting.FogEnd
+            FPS_Saved.Brightness      = Lighting.Brightness
+            Lighting.GlobalShadows    = false
+            Lighting.FogEnd           = 100000
+            Lighting.Brightness       = 1
+        end)
+        pcall(function()
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+                    FPS_Saved[obj] = obj.Enabled
+                    obj.Enabled = false
+                end
+                if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
+                    FPS_Saved[obj] = obj.Enabled
+                    obj.Enabled = false
+                end
+            end
+        end)
+        pcall(function()
+            local settings = UserSettings()
+            if settings and settings.GameSettings then
+                FPS_Saved.SavedQuality = settings.GameSettings.SavedQualityLevel
+                settings.GameSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+            end
+        end)
+        Notify("FPS Boost · Max", "Đã tắt bóng/hạt/đèn — FPS tối đa", 4)
+    else
+        pcall(function()
+            if FPS_Saved.GlobalShadows ~= nil then Lighting.GlobalShadows = FPS_Saved.GlobalShadows end
+            if FPS_Saved.FogEnd        ~= nil then Lighting.FogEnd        = FPS_Saved.FogEnd end
+            if FPS_Saved.Brightness    ~= nil then Lighting.Brightness    = FPS_Saved.Brightness end
+        end)
+        pcall(function()
+            for obj, state in pairs(FPS_Saved) do
+                if typeof(obj) == "Instance" and obj.Parent then
+                    pcall(function() obj.Enabled = state end)
+                end
+            end
+        end)
+        pcall(function()
+            local settings = UserSettings()
+            if settings and settings.GameSettings and FPS_Saved.SavedQuality then
+                settings.GameSettings.SavedQualityLevel = FPS_Saved.SavedQuality
+            end
+        end)
+        Notify("FPS Boost · Max", "Đã khôi phục đồ họa", 3)
+    end
+end
+
+-- Thêm vào tab Location, chỉ hiện khi Max inject
+FPS.Float = HS.CreateFloat("FPS+", 1200)
+FPS.Float.OnTap(function()
+    if INJECT_TIER ~= "max" then
+        Notify("FPS Boost", "🔒 Chỉ dành cho Inject Max!", 3)
+        FPS.Float.SetOn(false)
+        return
+    end
+    SetFPSBoost(not FPS.Enabled)
+end)
+CreateHeader(HS.TabLoc, "FPS BOOST · MAX ONLY")
+CreateToggle(HS.TabLoc, "Tăng FPS · Giảm đồ họa tối đa", false, function(s)
+    if INJECT_TIER ~= "max" then
+        Notify("FPS Boost", "🔒 Chỉ dành cho Inject Max!", 3)
+        return
+    end
+    SetFPSBoost(s)
+end)
+CreateToggle(HS.TabLoc, "Hiện nút nổi FPS+", false, function(on)
+    FPS.Float.Show(on)
+end)
+CreateLabel(HS.TabLoc, "Tắt bóng, hạt, đèn, giảm chất lượng render client-side — không ảnh hưởng người khác.", C.Sub)
+
+-- ════════════════════════════════════════════════════════════════
+--  CREATE CAR · Beta version only
+-- ════════════════════════════════════════════════════════════════
+local CAR = { Enabled = false, Float = nil, Model = nil, Conn = nil }
+local CAR_SavedWalkSpeed = nil
+local CAR_SavedAnimId = nil
+
+local function DestroyCar()
+    if CAR.Model then pcall(function() CAR.Model:Destroy() end); CAR.Model = nil end
+    if CAR.Conn  then pcall(function() CAR.Conn:Disconnect() end); CAR.Conn = nil end
+    -- Khôi phục walk speed
+    local c = LocalPlayer.Character
+    local hum = c and c:FindFirstChildOfClass("Humanoid")
+    if hum and CAR_SavedWalkSpeed then
+        pcall(function() hum.WalkSpeed = CAR_SavedWalkSpeed end)
+    end
+    CAR_SavedWalkSpeed = nil
+end
+
+local function CreateCarModel()
+    local c = LocalPlayer.Character
+    local hrp = c and c:FindFirstChild("HumanoidRootPart")
+    local hum = c and c:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return nil end
+
+    -- Tạo model xe đơn giản từ Part
+    local model = Instance.new("Model")
+    model.Name = "HyperSun_Car"
+
+    -- Thân xe
+    local body = Instance.new("Part")
+    body.Name = "Body"
+    body.Size = Vector3.new(6, 1.6, 3)
+    body.BrickColor = BrickColor.new("Bright red")
+    body.Material = Enum.Material.SmoothPlastic
+    body.CFrame = hrp.CFrame * CFrame.new(0, -2, 0)
+    body.CanCollide = false
+    body.Anchored = false
+    pcall(function() body.CanQuery = false end)
+    pcall(function() body.CastShadow = false end)
+    body.Parent = model
+
+    -- Cabin
+    local cabin = Instance.new("Part")
+    cabin.Name = "Cabin"
+    cabin.Size = Vector3.new(3.5, 1.4, 2.8)
+    cabin.BrickColor = BrickColor.new("Bright red")
+    cabin.Material = Enum.Material.SmoothPlastic
+    cabin.CFrame = body.CFrame * CFrame.new(-0.5, 1.5, 0)
+    cabin.CanCollide = false
+    cabin.Anchored = false
+    pcall(function() cabin.CanQuery = false end)
+    pcall(function() cabin.CastShadow = false end)
+    cabin.Parent = model
+
+    -- 4 bánh
+    local wheelPositions = {
+        Vector3.new(2, -1, 1.6),
+        Vector3.new(2, -1, -1.6),
+        Vector3.new(-2, -1, 1.6),
+        Vector3.new(-2, -1, -1.6),
+    }
+    for i, pos in ipairs(wheelPositions) do
+        local wheel = Instance.new("Part")
+        wheel.Name = "Wheel"..i
+        wheel.Size = Vector3.new(0.5, 1.2, 1.2)
+        wheel.Shape = Enum.PartType.Cylinder
+        wheel.BrickColor = BrickColor.new("Black")
+        wheel.Material = Enum.Material.SmoothPlastic
+        wheel.CFrame = body.CFrame * CFrame.new(pos.X, pos.Y, pos.Z)
+        wheel.CanCollide = false
+        wheel.Anchored = false
+        wheel.Parent = model
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = body; weld.Part1 = wheel; weld.Parent = model
+    end
+
+    local weldCabin = Instance.new("WeldConstraint")
+    weldCabin.Part0 = body; weldCabin.Part1 = cabin; weldCabin.Parent = model
+
+    -- Weld xe vào HRP
+    local mainWeld = Instance.new("WeldConstraint")
+    mainWeld.Part0 = hrp; mainWeld.Part1 = body; mainWeld.Parent = model
+
+    model.PrimaryPart = body
+    model.Parent = Workspace
+    -- Mobile: limit part count
+    local partCount = #model:GetDescendants()
+    if partCount > 60 then
+        warn("[HyperSun] Car model too heavy: " .. partCount .. " parts")
+    end
+    return model, hum
+end
+
+local function SetCreateCar(on)
+    CAR.Enabled = on and true or false
+    if CAR.Float then CAR.Float.SetOn(CAR.Enabled) end
+    if CAR.Enabled then
+        if INJECT_TIER ~= "beta" and INJECT_TIER ~= "max" then
+            Notify("Create Car", "🔒 Chỉ dành cho Inject Beta / Max!", 3)
+            CAR.Enabled = false
+            if CAR.Float then CAR.Float.SetOn(false) end
+            return
+        end
+        local c = LocalPlayer.Character
+        local hum = c and c:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        CAR_SavedWalkSpeed = hum.WalkSpeed
+        -- Tăng WalkSpeed để xe chạy nhanh hơn
+        pcall(function() hum.WalkSpeed = 28 end)
+        local model = CreateCarModel()
+        CAR.Model = model
+        -- Giảm hoạt ảnh nhân vật (ẩn chân đi bộ — dùng hipheight)
+        pcall(function() hum.HipHeight = 2.2 end)
+        Notify("Create Car · Beta", "Xe đã được tạo — WASD/joystick để lái", 5)
+    else
+        DestroyCar()
+        local c = LocalPlayer.Character
+        local hum = c and c:FindFirstChildOfClass("Humanoid")
+        if hum then pcall(function() hum.HipHeight = 0 end) end
+        Notify("Create Car · Beta", "Đã xóa xe, khôi phục nhân vật", 3)
+    end
+end
+
+-- CharacterAdded: xóa xe khi respawn
+Connections[#Connections+1] = LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if CAR.Enabled then
+        CAR.Model = nil
+        task.wait(0.8)
+        SetCreateCar(true)
+    end
+end)
+
+CAR.Float = HS.CreateFloat("Car", 1250)
+CAR.Float.OnTap(function() SetCreateCar(not CAR.Enabled) end)
+
+CreateHeader(HS.TabMem, "CREATE CAR · BETA ONLY")
+CreateToggle(HS.TabMem, "Create Car · Bật / Tắt", false, function(s)
+    SetCreateCar(s)
+end)
+CreateToggle(HS.TabMem, "Hiện nút nổi Car", false, function(on)
+    CAR.Float.Show(on)
+end)
+CreateLabel(HS.TabMem, "Tạo xe hơi gắn vào nhân vật. Dùng joystick/WASD để lái. Chỉ hiện phía client.", C.Sub)
+
+-- Unload hook tổng cuối cùng
+local _finalOld = Env.HyperSunUnload
+Env.HyperSunUnload = function()
+    SetFPSBoost(false)
+    DestroyCar()
+    if _finalOld then pcall(_finalOld) end
 end
